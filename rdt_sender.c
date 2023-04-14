@@ -11,11 +11,52 @@
 #include <time.h>
 #include <assert.h>
 
+#include <stdbool.h>
+
 #include"packet.h"
 #include"common.h"
 
 #define STDIN_FD    0
 #define RETRY  120 //millisecond
+
+
+typedef struct node {
+    int val;
+    struct node * next;
+} packet_list;
+
+packet_list * head = NULL;
+//head = (packet_list *) malloc(sizeof(packet_list));
+//head->next = NULL;
+
+void push(packet_list * head, int val) {
+    packet_list * current = head;
+    while (current->next != NULL) {
+        current = current->next;
+    }
+
+    /* now we can add a new variable */
+    current->next = (packet_list *) malloc(sizeof(packet_list));
+    current->next->val = val;
+    current->next->next = NULL;
+}
+
+int pop(packet_lis ** head) {
+    int retval = -1;
+    npacket_lis * next_node = NULL;
+
+    if (*head == NULL) {
+        return -1;
+    }
+
+    next_node = (*head)->next;
+    retval = (*head)->val;
+    free(*head);
+    *head = next_node;
+
+    return retval;
+}
+
 
 int next_seqno=0;
 int send_base=0;
@@ -26,7 +67,7 @@ struct sockaddr_in serveraddr;
 struct itimerval timer; 
 tcp_packet *sndpkt;
 tcp_packet *recvpkt;
-sigset_t sigmask;       
+sigset_t sigmask;
 
 
 void resend_packets(int sig)
