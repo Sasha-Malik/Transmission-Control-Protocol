@@ -249,7 +249,8 @@ int main (int argc, char **argv)
         // window size of 10 packets from list here
         sndpkt = make_packet(len);
         memcpy(sndpkt->data, buffer, len);
-        sndpkt->hdr.seqno = send_base;*/
+        sndpkt->hdr.seqno = send_base;
+         */
         //Wait for ACK
         do {
 
