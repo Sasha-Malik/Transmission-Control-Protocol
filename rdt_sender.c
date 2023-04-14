@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -64,7 +64,7 @@ int window_size = 10;
 
 int sockfd, serverlen;
 struct sockaddr_in serveraddr;
-struct itimerval timer; 
+struct itimerval timer;
 tcp_packet *sndpkt;
 tcp_packet *recvpkt;
 sigset_t sigmask;
@@ -74,10 +74,10 @@ void resend_packets(int sig)
 {
     if (sig == SIGALRM)
     {
-        //Resend all packets range between 
+        //Resend all packets range between
         //sendBase and nextSeqNum
         VLOG(INFO, "Timout happend");
-        if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, 
+        if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
                     ( const struct sockaddr *)&serveraddr, serverlen) < 0)
         {
             error("sendto");
@@ -104,11 +104,11 @@ void stop_timer()
  * delay: delay in milliseconds
  * sig_handler: signal handler function for re-sending unACKed packets
  */
-void init_timer(int delay, void (*sig_handler)(int)) 
+void init_timer(int delay, void (*sig_handler)(int))
 {
     signal(SIGALRM, sig_handler);
     timer.it_interval.tv_sec = delay / 1000;    // sets an interval of the timer
-    timer.it_interval.tv_usec = (delay % 1000) * 1000;  
+    timer.it_interval.tv_usec = (delay % 1000) * 1000;
     timer.it_value.tv_sec = delay / 1000;       // sets an initial value
     timer.it_value.tv_usec = (delay % 1000) * 1000;
 
@@ -203,7 +203,7 @@ int main (int argc, char **argv)
 
     /* socket: create the socket */
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) 
+    if (sockfd < 0)
         error("ERROR opening socket");
 
 
@@ -254,14 +254,14 @@ int main (int argc, char **argv)
         //Wait for ACK
         do {
 
-            VLOG(DEBUG, "Sending packet %d to %s", 
+            VLOG(DEBUG, "Sending packet %d to %s",
                     send_base, inet_ntoa(serveraddr.sin_addr));
             /*
              * If the sendto is called for the first time, the system will
              * will assign a random port number so that server can send its
              * response to the src port.
              */
-            if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, 
+            if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
                         ( const struct sockaddr *)&serveraddr, serverlen) < 0)
             {
                 error("sendto");
@@ -285,7 +285,7 @@ int main (int argc, char **argv)
             }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             stop_timer();
             /*resend pack if don't recv ACK */
-        } while(recvpkt->hdr.ackno != next_seqno);      
+        } while(recvpkt->hdr.ackno != next_seqno);
 
         free(sndpkt);
     }
@@ -293,5 +293,3 @@ int main (int argc, char **argv)
     return 0;
 
 }
-
-
