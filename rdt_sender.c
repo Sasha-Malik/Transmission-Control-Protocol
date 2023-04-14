@@ -60,7 +60,7 @@ tcp_packet* pop(packet_list ** head) {
 
 int next_seqno=0;
 int send_base=0;
-int window_size = 1;
+int window_size = 10;
 
 int sockfd, serverlen;
 struct sockaddr_in serveraddr;
@@ -165,11 +165,17 @@ int main (int argc, char **argv)
 
     while (len > 0)
     {
+        send_base = next_seqno;
+        next_seqno = send_base + len;
+        
         tcp_packet *pack = make_packet(len);
+        pack->hdr.seqno = send_base;
         memcpy(pack->data, buffer, len);
         packArr[count] = *pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
+        
+        
         if (len <= 0) {
             pack = make_packet(0); // to signal end of file
             packArr[count] = *pack;
@@ -185,11 +191,11 @@ int main (int argc, char **argv)
     // deal with len(0) packet in while
     // incorporate following?
 
-    // send_base = next_seqno;
-    // next_seqno = send_base + len;
-    // sndpkt = make_packet(len);
-    // memcpy(sndpkt->data, buffer, len);
-    // sndpkt->hdr.seqno = send_base;
+    /*send_base = next_seqno;
+    next_seqno = send_base + len;
+    sndpkt = make_packet(len);
+    memcpy(sndpkt->data, buffer, len);
+    sndpkt->hdr.seqno = send_base;*/
 
     // CHANGES 2
 
@@ -237,13 +243,13 @@ int main (int argc, char **argv)
         //     break;
         // }
         // not needed anymore
-        send_base = next_seqno;
+        /*send_base = next_seqno;
         next_seqno = send_base + len;
 
         // window size of 10 packets from list here
         sndpkt = make_packet(len);
         memcpy(sndpkt->data, buffer, len);
-        sndpkt->hdr.seqno = send_base;
+        sndpkt->hdr.seqno = send_base;*/
         //Wait for ACK
         do {
 
