@@ -21,7 +21,7 @@
 
 
 typedef struct node {
-    int val;
+    tcp_packet * val;
     struct node * next;
 } packet_list;
 
@@ -29,7 +29,7 @@ packet_list * head = NULL;
 //head = (packet_list *) malloc(sizeof(packet_list));
 //head->next = NULL;
 
-void push(packet_list * head, int val) {
+void push(packet_list * head, tcp_packet * val) {
     packet_list * current = head;
     while (current->next != NULL) {
         current = current->next;
@@ -41,9 +41,9 @@ void push(packet_list * head, int val) {
     current->next->next = NULL;
 }
 
-int pop(packet_lis ** head) {
-    int retval = -1;
-    npacket_lis * next_node = NULL;
+tcp_packet* pop(packet_list ** head) {
+    tcp_packet* retval = NULL;
+    packet_list * next_node = NULL;
 
     if (*head == NULL) {
         return -1;
@@ -137,19 +137,7 @@ int main (int argc, char **argv)
         error(argv[3]);
     }
 
-
-
-
     // CHANGES
-
-
-    // algo
-    // while file is not empty:
-    //    read len data from file
-    //    make packet with len data
-    //    append packet to list of packets
-
-    // make an array of packets
 
     // size of file to determine num of packets
     fseek(fp, 0, SEEK_END);
@@ -159,7 +147,6 @@ int main (int argc, char **argv)
     fseek(fp, 0, SEEK_SET);
 
     // making packets in array
-
     int num_packs = size / DATA_SIZE;
 
     // for ceiling after div
@@ -173,10 +160,8 @@ int main (int argc, char **argv)
 
     int count = 0;
 
-    // printf("num_packs: %d\n", num_packs);
-    // printf("size: %d\n", size);
-    // printf("datasize: %ld\n", DATA_SIZE);
-
+    printf("num_packs: %d\n", num_packs);
+    printf("size: %d\n", size);
 
     while (len > 0)
     {
@@ -185,13 +170,28 @@ int main (int argc, char **argv)
         packArr[count] = *pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
-        printf("counts: %d , data: %s \n", count, pack->data);
+        if (len <= 0) {
+            pack = make_packet(0); // to signal end of file
+            packArr[count] = *pack;
+            count++;
+        }
+        // printf("counts: %d \n", count);
     }
 
     // CHANGES
 
+    // CHANGES 2
 
+    // deal with len(0) packet in while
+    // incorporate following?
 
+    // send_base = next_seqno;
+    // next_seqno = send_base + len;
+    // sndpkt = make_packet(len);
+    // memcpy(sndpkt->data, buffer, len);
+    // sndpkt->hdr.seqno = send_base;
+
+    // CHANGES 2
 
 
     /* socket: create the socket */
@@ -220,19 +220,27 @@ int main (int argc, char **argv)
 
     init_timer(RETRY, resend_packets);
     next_seqno = 0;
+
+    // reset to beg - FOR NOW
+    fseek(fp, 0, SEEK_SET);
+
     while (1)
     {
-        len = fread(buffer, 1, DATA_SIZE, fp);
-        if ( len <= 0)
-        {
-            VLOG(INFO, "End Of File has been reached");
-            sndpkt = make_packet(0);
-            sendto(sockfd, sndpkt, TCP_HDR_SIZE,  0,
-                    (const struct sockaddr *)&serveraddr, serverlen);
-            break;
-        }
+        // not needed anymore
+        // len = fread(buffer, 1, DATA_SIZE, fp);
+        // if ( len <= 0)
+        // {
+        //     VLOG(INFO, "End Of File has been reached");
+        //     sndpkt = make_packet(0);
+        //     sendto(sockfd, sndpkt, TCP_HDR_SIZE,  0,
+        //             (const struct sockaddr *)&serveraddr, serverlen);
+        //     break;
+        // }
+        // not needed anymore
         send_base = next_seqno;
         next_seqno = send_base + len;
+
+        // window size of 10 packets from list here
         sndpkt = make_packet(len);
         memcpy(sndpkt->data, buffer, len);
         sndpkt->hdr.seqno = send_base;
@@ -278,6 +286,5 @@ int main (int argc, char **argv)
     return 0;
 
 }
-
 
 
