@@ -96,6 +96,63 @@ int main (int argc, char **argv)
         error(argv[3]);
     }
 
+
+
+
+    // CHANGES
+
+
+    // algo
+    // while file is not empty:
+    //    read len data from file
+    //    make packet with len data
+    //    append packet to list of packets
+
+    // make an array of packets
+
+    // size of file to determine num of packets
+    fseek(fp, 0, SEEK_END);
+    int size = ftell(fp);
+
+    // reset to beg
+    fseek(fp, 0, SEEK_SET);
+
+    // making packets in array
+
+    int num_packs = size / DATA_SIZE;
+
+    // for ceiling after div
+    if (num_packs * DATA_SIZE < size) {
+        num_packs++;
+    }
+
+    tcp_packet *packArr = malloc(num_packs * sizeof(tcp_packet));
+
+    len = fread(buffer, 1, DATA_SIZE, fp); // read outside - first step
+
+    int count = 0;
+
+    // printf("num_packs: %d\n", num_packs);
+    // printf("size: %d\n", size);
+    // printf("datasize: %ld\n", DATA_SIZE);
+
+
+    while (len > 0)
+    {
+        tcp_packet *pack = make_packet(len);
+        memcpy(pack->data, buffer, len);
+        packArr[count] = *pack;
+        count++;
+        len = fread(buffer, 1, DATA_SIZE, fp);
+        printf("counts: %d , data: %s \n", count, pack->data);
+    }
+
+    // CHANGES
+
+
+
+
+
     /* socket: create the socket */
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) 
