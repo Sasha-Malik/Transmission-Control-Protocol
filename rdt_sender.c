@@ -163,10 +163,15 @@ int main (int argc, char **argv)
     printf("num_packs: %d\n", num_packs);
     printf("size: %d\n", size);
 
+    next_seqno = 0;
+    
     while (len > 0)
     {
+        send_base = next_seqno;
+        next_seqno = send_base + len;
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
+        pack->hdr.seqno = send_base;
         packArr[count] = *pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
@@ -237,13 +242,13 @@ int main (int argc, char **argv)
         //     break;
         // }
         // not needed anymore
-        send_base = next_seqno;
-        next_seqno = send_base + len;
+        // send_base = next_seqno;
+        // next_seqno = send_base + len;
 
         // window size of 10 packets from list here
-        sndpkt = make_packet(len);
-        memcpy(sndpkt->data, buffer, len);
-        sndpkt->hdr.seqno = send_base;
+        // sndpkt = make_packet(len);
+        // memcpy(sndpkt->data, buffer, len);
+        // sndpkt->hdr.seqno = send_base;
         //Wait for ACK
         do {
 
