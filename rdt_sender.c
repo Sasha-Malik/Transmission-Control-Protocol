@@ -174,7 +174,7 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
-    num_packs++; // for datasize 0 final packet
+    // num_packs++; // for datasize 0 final packet
 
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
@@ -188,21 +188,23 @@ int main (int argc, char **argv)
     while (len > 0)
     { 
         // printf("seqno: %d\n", send_base);
+
+        send_base = next_seqno;
+        next_seqno = send_base + len;
+        
+
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
         pack->hdr.seqno = send_base;
         packArr[count] = pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
-
-        next_seqno =send_base + len;
-        send_base = next_seqno;
         
-        if (len <= 0) {
-            pack = make_packet(0); // to signal end of file
-            packArr[count] = pack;
-            count++;
-        }
+        // if (len <= 0) {
+        //     pack = make_packet(0); // to signal end of file
+        //     packArr[count] = pack;
+        //     count++;
+        // }
         // printf("counts: %d \n", count);
     }
     // printf("COMPLETE seqno: %d\n", send_base);
@@ -334,27 +336,34 @@ int main (int argc, char **argv)
                 recvpkt = (tcp_packet *)buffer;
                 printf("%d \n", get_data_size(recvpkt));
                 assert(get_data_size(recvpkt) <= DATA_SIZE);
+                printf("123: %d\n", recvpkt->hdr.ackno);
                 
-            } while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
+            }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             stop_timer();
         
             start_timer(); //starting timer for the new lowest
         
             //popping the acked packets from the pack list
+            
             int new_packets_no = 0;
-            while( head->val->hdr.seqno < recvpkt->hdr.ackno )
+            while(head->val->hdr.seqno < recvpkt->hdr.ackno)
             {
                 pop(&head);
                 new_packets_no++;
+                if (head == NULL) {
+                    break;
+                }
             }
             //filling the packet list with new packets and sending them
             
             //if() to start new timer for the lowest pack
-                
+
+
             while(new_packets_no > 0)
             {
                 if(counter < num_packs)
                 {
+                    printf("counter234: %d\n", counter);
                     sndpkt = packArr[counter]; //idk
                     push(tail, sndpkt); //pushing to the list
                     counter++;
