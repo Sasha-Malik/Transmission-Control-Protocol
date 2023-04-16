@@ -269,8 +269,8 @@ int main (int argc, char **argv)
         
        // do {
 
-            do
-            {
+           // do
+            //{
                 if(recvfrom(sockfd, buffer, MSS_SIZE, 0,
                             (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0)
                 {
@@ -282,7 +282,7 @@ int main (int argc, char **argv)
                 assert(get_data_size(recvpkt) <= DATA_SIZE);
                 printf("123: %d\n", recvpkt->hdr.ackno);
                 
-            }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
+            //}while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             // stop_timer();
         
             // start_timer(); //starting timer for the new lowest
@@ -304,7 +304,7 @@ int main (int argc, char **argv)
             // printf("789\n");
             //filling the packet list with new packets and sending them
             
-            while(new_packets_no > 0)
+            if(count < num_packs)
             {
                 while(new_packets_no > 0)
                 {
@@ -328,7 +328,7 @@ int main (int argc, char **argv)
                 }
             }
         
-            next_seqno = recvpkt->hdr.ackno + DATA_SIZE; //next expected min ack
+            //next_seqno = recvpkt->hdr.ackno + DATA_SIZE; //next expected min ack
             
             
             /*resend pack if don't recv ACK */
