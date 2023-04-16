@@ -188,15 +188,17 @@ int main (int argc, char **argv)
     while (len > 0)
     { 
         // printf("seqno: %d\n", send_base);
+
+        send_base = next_seqno;
+        next_seqno = send_base + len;
+        
+
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
         pack->hdr.seqno = send_base;
         packArr[count] = pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
-
-        next_seqno =send_base + len;
-        send_base = next_seqno;
         
         // if (len <= 0) {
         //     pack = make_packet(0); // to signal end of file
@@ -334,6 +336,7 @@ int main (int argc, char **argv)
                 recvpkt = (tcp_packet *)buffer;
                 printf("%d \n", get_data_size(recvpkt));
                 assert(get_data_size(recvpkt) <= DATA_SIZE);
+                printf("123: %d\n", recvpkt->hdr.ackno);
                 
             }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             stop_timer();
@@ -358,7 +361,7 @@ int main (int argc, char **argv)
 
             while(new_packets_no > 0)
             {
-                if(counter <= num_packs)
+                if(counter < num_packs)
                 {
                     printf("counter234: %d\n", counter);
                     sndpkt = packArr[counter]; //idk
