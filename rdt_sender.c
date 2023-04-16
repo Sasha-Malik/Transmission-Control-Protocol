@@ -285,7 +285,7 @@ int main (int argc, char **argv)
         }
         
         //keeping timer for the lowest packet
-        if(i == 10)
+        if(i == 10) //change this
             start_timer();
         
         i--;
@@ -357,7 +357,7 @@ int main (int argc, char **argv)
                 if(counter < num_packs)
                 {
                     sndpkt = packArr[counter]; //idk
-                    push(head, sndpkt); //pushing to the list
+                    push(tail, sndpkt); //pushing to the list
                     counter++;
                     
                     send_base = sndpkt->hdr.seqno;
@@ -373,7 +373,6 @@ int main (int argc, char **argv)
                     
                     new_packets_no--;
                 }
-                
             }
         
             next_seqno = recvpkt->hdr.ackno + DATA_SIZE; //next expected min ack
