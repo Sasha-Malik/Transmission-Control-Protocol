@@ -29,24 +29,27 @@ packet_list * head = NULL;
 packet_list * tail = NULL;
 
 
-void push(packet_list * tail, tcp_packet * val) {
+void push(packet_list ** tail, tcp_packet * val) {
     
     packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
     new_node->val = val;
     new_node->next = NULL;
 
-    if (tail == NULL) {
+    if (*tail == NULL) {
         head = new_node;
-        tail = new_node;
+        *tail = new_node;
         return;
     }
-
-    tail->next = new_node;
-    tail = tail->next;
+    
+    else {
+        (*tail)->next = new_node;
+        *tail = (*tail)->next;
+    }
+   
 }
 
 
-tcp_packet* pop(packet_list * head) {
+void pop(packet_list ** head) {
     // tcp_packet* retval = NULL;
     // packet_list * next_node = NULL;
 
@@ -60,8 +63,10 @@ tcp_packet* pop(packet_list * head) {
     // *head = next_node;
 
     // return retval;
-    head = head->next;
-    return NULL;
+    
+    //packet_list * temp = head;
+    *head = (*head)->next;
+    //free(temp);
 }
 
 
@@ -162,7 +167,6 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
-    
 
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
@@ -239,7 +243,9 @@ int main (int argc, char **argv)
     {
         sndpkt = packArr[counter];
         
-        push(tail, sndpkt); //pushing to the list
+        push(&tail, sndpkt); //pushing to the list
+        
+        printf("why : %d \n",head->val->hdr.seqno);
         
         counter++;
         
@@ -259,6 +265,13 @@ int main (int argc, char **argv)
             // start_timer();
         
         i--;
+    }
+
+    packet_list* temp = head;
+    while(temp != NULL)
+    {
+        printf("list : %d \n",temp->val->hdr.seqno);
+        temp = temp->next;
     }
     
     send_base = 0; //nothing has been recieved
@@ -290,11 +303,13 @@ int main (int argc, char **argv)
             //popping the acked packets from the pack list
             
             int new_packets_no = 0;
+            printf("seq_no : %d \n",head->val->hdr.seqno);
+            printf("ack_no : %d \n",recvpkt->hdr.ackno);
             while(head->val->hdr.seqno < recvpkt->hdr.ackno)
             {
 
                 // printf("123\n");
-                pop(head);
+                pop(&head);
                 // printf("456\n");
                 new_packets_no++;
                 if (head == NULL) {
@@ -310,7 +325,7 @@ int main (int argc, char **argv)
                 {
                     printf("counter234: %d\n", counter);
                     sndpkt = packArr[counter]; //idk
-                    push(tail, sndpkt); //pushing to the list
+                    push(&tail, sndpkt); //pushing to the list
                     counter++;
                     
                     send_base = sndpkt->hdr.seqno;
@@ -334,7 +349,7 @@ int main (int argc, char **argv)
             /*resend pack if don't recv ACK */
        // } while(recvpkt->hdr.ackno != next_seqno);
 
-        free(sndpkt);
+        //free(sndpkt);
     }
 
     return 0;
