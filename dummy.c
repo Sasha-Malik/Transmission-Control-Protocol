@@ -29,17 +29,35 @@ packet_list * head = NULL;
 //head = (packet_list *) malloc(sizeof(packet_list));
 //head->next = NULL;
 
-//need to change push
-void push(packet_list * head, tcp_packet * val) {
+// //need to change push
+// void push(packet_list * head, tcp_packet * val) {
+//     packet_list * current = head;
+//     while (current->next != NULL) {
+//         current = current->next;
+//     }
+
+//     /* now we can add a new variable */
+//     current->next = (packet_list *) malloc(sizeof(packet_list));
+//     current->next->val = val;
+//     current->next->next = NULL;
+// }
+
+
+void push(packet_list ** head, tcp_packet * val) {
+    packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
+    new_node->val = val;
+    new_node->next = NULL;
+
+    if (head == NULL) {
+        head = new_node;
+        return;
+    }
+
     packet_list * current = head;
     while (current->next != NULL) {
         current = current->next;
     }
-
-    /* now we can add a new variable */
-    current->next = (packet_list *) malloc(sizeof(packet_list));
-    current->next->val = val;
-    current->next->next = NULL;
+    current->next = new_node;
 }
 
 tcp_packet* pop(packet_list ** head) {
