@@ -268,9 +268,7 @@ int main (int argc, char **argv)
     while(i > 0)
     {
         sndpkt = packArr[counter]; //idk
-        printf("123\n");
         push(head, sndpkt); //pushing to the list
-        printf("123\n");
         counter++;
         
         send_base = sndpkt->hdr.seqno;
@@ -295,36 +293,9 @@ int main (int argc, char **argv)
     next_seqno = send_base + DATA_SIZE; //the first ack will be
 
     while (1)
-    {
-        // // window size of 10 packets from list here
-        // sndpkt = make_packet(len);
-        // memcpy(sndpkt->data, buffer, len);
-        // sndpkt->hdr.seqno = send_base;
-        //Wait for ACK
-        
+    {        
         do {
-
-            //VLOG(DEBUG, "Sending packet %d to %s",
-            //        send_base, inet_ntoa(serveraddr.sin_addr));
-            /*
-             * If the sendto is called for the first time, the system will
-             * will assign a random port number so that server can send its
-             * response to the src port.
-             */
-            /*
-            if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
-                        ( const struct sockaddr *)&serveraddr, serverlen) < 0)
-            {
-                error("sendto");
-            }
-
-            start_timer();
-            //ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
-            //struct sockaddr *src_addr, socklen_t *addrlen);
-            */
-
-            do
-            {
+            do {
                 if(recvfrom(sockfd, buffer, MSS_SIZE, 0,
                             (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0)
                 {
@@ -335,12 +306,10 @@ int main (int argc, char **argv)
                 printf("%d \n", get_data_size(recvpkt));
                 assert(get_data_size(recvpkt) <= DATA_SIZE);
                 
-            }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
+            } while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             stop_timer();
         
-        
             //popping the acked packets from the pack list
-            
             int new_packets_no = 0;
             while( head->val->hdr.seqno < recvpkt->hdr.ackno)
             {
@@ -348,8 +317,7 @@ int main (int argc, char **argv)
                 new_packets_no++;
             }
             //filling the packet list with new packets and sending them
-            
-        //if() to start new timer for the lowest pack
+            //if() to start new timer for the lowest pack
                 
             while(new_packets_no > 0)
             {
