@@ -27,21 +27,7 @@ typedef struct node {
 
 packet_list * head = NULL;
 packet_list * tail = NULL;
-//head = (packet_list *) malloc(sizeof(packet_list));
-//head->next = NULL;
 
-// //need to change push
-// void push(packet_list * head, tcp_packet * val) {
-//     packet_list * current = head;
-//     while (current->next != NULL) {
-//         current = current->next;
-//     }
-
-//     /* now we can add a new variable */
-//     current->next = (packet_list *) malloc(sizeof(packet_list));
-//     current->next->val = val;
-//     current->next->next = NULL;
-// }
 
 void push(packet_list * tail, tcp_packet * val) {
     
@@ -176,7 +162,7 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
-    // num_packs++; // for datasize 0 final packet
+    
 
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
@@ -209,27 +195,7 @@ int main (int argc, char **argv)
         // }
         // printf("counts: %d \n", count);
     }
-    // printf("COMPLETE seqno: %d\n", send_base);
-    // printf("count: %d\n", count);
-
-
-
-    // CHANGES
-
-    // CHANGES 2
-
-    // deal with len(0) packet in while
-    // incorporate following?
-
-    /*send_base = next_seqno;
-    next_seqno = send_base + len;
-    sndpkt = make_packet(len);
-    memcpy(sndpkt->data, buffer, len);
-    sndpkt->hdr.seqno = send_base;*/
-
-    // CHANGES 2
-
-
+    
     /* socket: create the socket */
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)
@@ -300,32 +266,8 @@ int main (int argc, char **argv)
 
     while (1)
     {
-        // // window size of 10 packets from list here
-        // sndpkt = make_packet(len);
-        // memcpy(sndpkt->data, buffer, len);
-        // sndpkt->hdr.seqno = send_base;
-        //Wait for ACK
         
        // do {
-
-            //VLOG(DEBUG, "Sending packet %d to %s",
-            //        send_base, inet_ntoa(serveraddr.sin_addr));
-            /*
-             * If the sendto is called for the first time, the system will
-             * will assign a random port number so that server can send its
-             * response to the src port.
-             */
-            /*
-            if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
-                        ( const struct sockaddr *)&serveraddr, serverlen) < 0)
-            {
-                error("sendto");
-            }
-
-            start_timer();
-            //ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
-            //struct sockaddr *src_addr, socklen_t *addrlen);
-            */
 
             do
             {
@@ -362,9 +304,7 @@ int main (int argc, char **argv)
             // printf("789\n");
             //filling the packet list with new packets and sending them
             
-            //if() to start new timer for the lowest pack
-
-            if(counter < num_packs)
+            while(new_packets_no > 0)
             {
                 while(new_packets_no > 0)
                 {

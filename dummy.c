@@ -60,20 +60,22 @@ void push(packet_list * tail, tcp_packet * val) {
 }
 
 
-tcp_packet* pop(packet_list ** head) {
-    tcp_packet* retval = NULL;
-    packet_list * next_node = NULL;
+tcp_packet* pop(packet_list * head) {
+    // tcp_packet* retval = NULL;
+    // packet_list * next_node = NULL;
 
-    if (*head == NULL) {
-        return NULL;
-    }
+    // if (*head == NULL) {
+    //     return NULL;
+    // }
 
-    next_node = (*head)->next;
-    retval = (*head)->val;
-    free(*head);
-    *head = next_node;
+    // next_node = (*head)->next;
+    // retval = (*head)->val;
+    // free(*head);
+    // *head = next_node;
 
-    return retval;
+    // return retval;
+    head = head->next;
+    return NULL;
 }
 
 
@@ -287,8 +289,8 @@ int main (int argc, char **argv)
         }
         
         //keeping timer for the lowest packet
-        if(i == 10) //change this
-            start_timer();
+        // if(i == 10) //change this
+            // start_timer();
         
         i--;
     }
@@ -339,29 +341,32 @@ int main (int argc, char **argv)
                 printf("123: %d\n", recvpkt->hdr.ackno);
                 
             }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
-            stop_timer();
+            // stop_timer();
         
-            start_timer(); //starting timer for the new lowest
+            // start_timer(); //starting timer for the new lowest
         
             //popping the acked packets from the pack list
             
             int new_packets_no = 0;
             while(head->val->hdr.seqno < recvpkt->hdr.ackno)
             {
-                pop(&head);
+
+                // printf("123\n");
+                pop(head);
+                // printf("456\n");
                 new_packets_no++;
                 if (head == NULL) {
                     break;
                 }
             }
+            // printf("789\n");
             //filling the packet list with new packets and sending them
             
             //if() to start new timer for the lowest pack
 
-
-            while(new_packets_no > 0)
+            if(counter < num_packs)
             {
-                if(counter < num_packs)
+                while(new_packets_no > 0)
                 {
                     printf("counter234: %d\n", counter);
                     sndpkt = packArr[counter]; //idk
