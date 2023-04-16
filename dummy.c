@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -21,7 +21,7 @@
 
 
 typedef struct node {
-    int val;
+    tcp_packet * val;
     struct node * next;
 } packet_list;
 
@@ -29,24 +29,43 @@ packet_list * head = NULL;
 //head = (packet_list *) malloc(sizeof(packet_list));
 //head->next = NULL;
 
-void push(packet_list * head, int val) {
+// //need to change push
+// void push(packet_list * head, tcp_packet * val) {
+//     packet_list * current = head;
+//     while (current->next != NULL) {
+//         current = current->next;
+//     }
+
+//     /* now we can add a new variable */
+//     current->next = (packet_list *) malloc(sizeof(packet_list));
+//     current->next->val = val;
+//     current->next->next = NULL;
+// }
+
+
+void push(packet_list ** head, tcp_packet * val) {
+    packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
+    new_node->val = val;
+    new_node->next = NULL;
+
+    if (head == NULL) {
+        head = new_node;
+        return;
+    }
+
     packet_list * current = head;
     while (current->next != NULL) {
         current = current->next;
     }
-
-    /* now we can add a new variable */
-    current->next = (packet_list *) malloc(sizeof(packet_list));
-    current->next->val = val;
-    current->next->next = NULL;
+    current->next = new_node;
 }
 
-int pop(packet_list ** head) {
-    int retval = -1;
+tcp_packet* pop(packet_list ** head) {
+    tcp_packet* retval = NULL;
     packet_list * next_node = NULL;
 
     if (*head == NULL) {
-        return -1;
+        return NULL;
     }
 
     next_node = (*head)->next;
@@ -60,11 +79,11 @@ int pop(packet_list ** head) {
 
 int next_seqno=0;
 int send_base=0;
-int window_size = 1;
+int window_size = 10;
 
 int sockfd, serverlen;
 struct sockaddr_in serveraddr;
-struct itimerval timer; 
+struct itimerval timer;
 tcp_packet *sndpkt;
 tcp_packet *recvpkt;
 sigset_t sigmask;
@@ -74,10 +93,11 @@ void resend_packets(int sig)
 {
     if (sig == SIGALRM)
     {
-        //Resend all packets range between 
-        //sendBase and nextSeqNum
+        //Resend the smallest packet
+        sndpkt = head->val;
+
         VLOG(INFO, "Timout happend");
-        if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, 
+        if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
                     ( const struct sockaddr *)&serveraddr, serverlen) < 0)
         {
             error("sendto");
@@ -104,11 +124,11 @@ void stop_timer()
  * delay: delay in milliseconds
  * sig_handler: signal handler function for re-sending unACKed packets
  */
-void init_timer(int delay, void (*sig_handler)(int)) 
+void init_timer(int delay, void (*sig_handler)(int))
 {
     signal(SIGALRM, sig_handler);
     timer.it_interval.tv_sec = delay / 1000;    // sets an interval of the timer
-    timer.it_interval.tv_usec = (delay % 1000) * 1000;  
+    timer.it_interval.tv_usec = (delay % 1000) * 1000;
     timer.it_value.tv_sec = delay / 1000;       // sets an initial value
     timer.it_value.tv_usec = (delay % 1000) * 1000;
 
@@ -137,19 +157,7 @@ int main (int argc, char **argv)
         error(argv[3]);
     }
 
-
-
-
     // CHANGES
-
-
-    // algo
-    // while file is not empty:
-    //    read len data from file
-    //    make packet with len data
-    //    append packet to list of packets
-
-    // make an array of packets
 
     // size of file to determine num of packets
     fseek(fp, 0, SEEK_END);
@@ -159,7 +167,6 @@ int main (int argc, char **argv)
     fseek(fp, 0, SEEK_SET);
 
     // making packets in array
-
     int num_packs = size / DATA_SIZE;
 
     // for ceiling after div
@@ -167,7 +174,9 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
-    tcp_packet *packArr = malloc(num_packs * sizeof(tcp_packet));
+    num_packs++; // for datasize 0 final packet
+
+    tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
     len = fread(buffer, 1, DATA_SIZE, fp); // read outside - first step
 
@@ -175,27 +184,51 @@ int main (int argc, char **argv)
 
     printf("num_packs: %d\n", num_packs);
     printf("size: %d\n", size);
-
-
+    
     while (len > 0)
-    {
+    { 
+        // printf("seqno: %d\n", send_base);
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
-        packArr[count] = *pack;
+        pack->hdr.seqno = send_base;
+        packArr[count] = pack; // should it be ?
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
-        printf("counts: %d \n", count);
+
+        next_seqno =send_base + len;
+        send_base = next_seqno;
+        
+        if (len <= 0) {
+            pack = make_packet(0); // to signal end of file
+            packArr[count] = pack;
+            count++;
+        }
+        // printf("counts: %d \n", count);
     }
+    // printf("COMPLETE seqno: %d\n", send_base);
+    // printf("count: %d\n", count);
+
+
 
     // CHANGES
 
+    // CHANGES 2
 
+    // deal with len(0) packet in while
+    // incorporate following?
 
+    /*send_base = next_seqno;
+    next_seqno = send_base + len;
+    sndpkt = make_packet(len);
+    memcpy(sndpkt->data, buffer, len);
+    sndpkt->hdr.seqno = send_base;*/
+
+    // CHANGES 2
 
 
     /* socket: create the socket */
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) 
+    if (sockfd < 0)
         error("ERROR opening socket");
 
 
@@ -220,38 +253,59 @@ int main (int argc, char **argv)
     init_timer(RETRY, resend_packets);
     next_seqno = 0;
 
-
-    // reset to beg
+    // reset to beg - FOR NOW
     fseek(fp, 0, SEEK_SET);
-
+    
+    int counter = 0; //keeping index of pack array
+    
+    //sending first 10 packets
+    int i = 10;
+    while(i > 0)
+    {
+        sndpkt = packArr[counter]; //idk
+        push(head, sndpkt); //pushing to the list
+        counter++;
+        
+        send_base = sndpkt->hdr.seqno;
+        
+        VLOG(DEBUG, "Sending packet %d to %s",
+                send_base, inet_ntoa(serveraddr.sin_addr));
+        
+        if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
+                    ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+        {
+            error("sendto");
+        }
+        
+        //keeping timer for the lowest packet
+        if(i == 10)
+            start_timer();
+        
+        i--;
+    }
+    
+    send_base = 0; //nothing has been recieved
+    next_seqno = send_base + DATA_SIZE; //the first ack will be
 
     while (1)
     {
-        len = fread(buffer, 1, DATA_SIZE, fp);
-        if ( len <= 0)
-        {
-            VLOG(INFO, "End Of File has been reached");
-            sndpkt = make_packet(0);
-            sendto(sockfd, sndpkt, TCP_HDR_SIZE,  0,
-                    (const struct sockaddr *)&serveraddr, serverlen);
-            break;
-        }
-        send_base = next_seqno;
-        next_seqno = send_base + len;
-        sndpkt = make_packet(len);
-        memcpy(sndpkt->data, buffer, len);
-        sndpkt->hdr.seqno = send_base;
+        // // window size of 10 packets from list here
+        // sndpkt = make_packet(len);
+        // memcpy(sndpkt->data, buffer, len);
+        // sndpkt->hdr.seqno = send_base;
         //Wait for ACK
-        do {
+        
+        //do {
 
-            VLOG(DEBUG, "Sending packet %d to %s", 
-                    send_base, inet_ntoa(serveraddr.sin_addr));
+            //VLOG(DEBUG, "Sending packet %d to %s",
+            //        send_base, inet_ntoa(serveraddr.sin_addr));
             /*
              * If the sendto is called for the first time, the system will
              * will assign a random port number so that server can send its
              * response to the src port.
              */
-            if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, 
+            /*
+            if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
                         ( const struct sockaddr *)&serveraddr, serverlen) < 0)
             {
                 error("sendto");
@@ -260,6 +314,7 @@ int main (int argc, char **argv)
             start_timer();
             //ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
             //struct sockaddr *src_addr, socklen_t *addrlen);
+            */
 
             do
             {
@@ -272,10 +327,48 @@ int main (int argc, char **argv)
                 recvpkt = (tcp_packet *)buffer;
                 printf("%d \n", get_data_size(recvpkt));
                 assert(get_data_size(recvpkt) <= DATA_SIZE);
+                
             }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             stop_timer();
+        
+        
+            //popping the acked packets from the pack list
+            
+            int new_packets_no = 0;
+            while( head->val->hdr.seqno < recvpkt->hdr.ackno)
+            {
+                pop(&head);
+                new_packets_no++;
+            }
+            //filling the packet list with new packets and sending them
+            
+        //if() to start new timer for the lowest pack
+                
+            while(new_packets_no > 0)
+            {
+                sndpkt = packArr[counter]; //idk
+                push(head, sndpkt); //pushing to the list
+                counter++;
+                
+                send_base = sndpkt->hdr.seqno;
+                
+                VLOG(DEBUG, "Sending packet %d to %s",
+                        send_base, inet_ntoa(serveraddr.sin_addr));
+                
+                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
+                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+                {
+                    error("sendto");
+                }
+                
+                new_packets_no--;
+            }
+        
+            next_seqno = recvpkt->hdr.ackno + DATA_SIZE; //next expected min ack
+            
+            
             /*resend pack if don't recv ACK */
-        } while(recvpkt->hdr.ackno != next_seqno);      
+        //} while(recvpkt->hdr.ackno != next_seqno);
 
         free(sndpkt);
     }
@@ -283,6 +376,3 @@ int main (int argc, char **argv)
     return 0;
 
 }
-
-
-

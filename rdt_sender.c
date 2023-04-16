@@ -29,25 +29,43 @@ packet_list * head = NULL;
 //head = (packet_list *) malloc(sizeof(packet_list));
 //head->next = NULL;
 
-//need to change push
-void push(packet_list * head, tcp_packet * val) {
+// //need to change push
+// void push(packet_list * head, tcp_packet * val) {
+//     packet_list * current = head;
+//     while (current->next != NULL) {
+//         current = current->next;
+//     }
+
+//     /* now we can add a new variable */
+//     current->next = (packet_list *) malloc(sizeof(packet_list));
+//     current->next->val = val;
+//     current->next->next = NULL;
+// }
+
+void push(packet_list ** head, tcp_packet * val) {
+    packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
+    new_node->val = val;
+    new_node->next = NULL;
+
+    if (head == NULL) {
+        head = new_node;
+        return;
+    }
+
     packet_list * current = head;
     while (current->next != NULL) {
         current = current->next;
     }
-
-    /* now we can add a new variable */
-    current->next = (packet_list *) malloc(sizeof(packet_list));
-    current->next->val = val;
-    current->next->next = NULL;
+    current->next = new_node;
 }
+
 
 tcp_packet* pop(packet_list ** head) {
     tcp_packet* retval = NULL;
     packet_list * next_node = NULL;
 
     if (*head == NULL) {
-        return -1;
+        return NULL;
     }
 
     next_node = (*head)->next;
@@ -156,7 +174,9 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
-    tcp_packet *packArr = malloc(num_packs * sizeof(tcp_packet));
+    num_packs++; // for datasize 0 final packet
+
+    tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
     len = fread(buffer, 1, DATA_SIZE, fp); // read outside - first step
 
@@ -164,28 +184,31 @@ int main (int argc, char **argv)
 
     printf("num_packs: %d\n", num_packs);
     printf("size: %d\n", size);
-
-    next_seqno = 0;
     
     while (len > 0)
-    {
-        send_base = next_seqno;
-        next_seqno = send_base + len;
-        
+    { 
+        // printf("seqno: %d\n", send_base);
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
         pack->hdr.seqno = send_base;
-        packArr[count] = *pack; // should it be pack?
+        packArr[count] = pack; // should it be ?
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
+
+        next_seqno =send_base + len;
+        send_base = next_seqno;
         
         if (len <= 0) {
             pack = make_packet(0); // to signal end of file
-            packArr[count] = *pack;
+            packArr[count] = pack;
             count++;
         }
         // printf("counts: %d \n", count);
     }
+    // printf("COMPLETE seqno: %d\n", send_base);
+    // printf("count: %d\n", count);
+
+
 
     // CHANGES
 
@@ -237,10 +260,17 @@ int main (int argc, char **argv)
     
     //sending first 10 packets
     int i = 10;
+
+    if (num_packs < 10) {
+        i = num_packs;
+    }
+
     while(i > 0)
     {
         sndpkt = packArr[counter]; //idk
+        printf("123\n");
         push(head, sndpkt); //pushing to the list
+        printf("123\n");
         counter++;
         
         send_base = sndpkt->hdr.seqno;
@@ -272,7 +302,7 @@ int main (int argc, char **argv)
         // sndpkt->hdr.seqno = send_base;
         //Wait for ACK
         
-        //do {
+        do {
 
             //VLOG(DEBUG, "Sending packet %d to %s",
             //        send_base, inet_ntoa(serveraddr.sin_addr));
@@ -345,7 +375,7 @@ int main (int argc, char **argv)
             
             
             /*resend pack if don't recv ACK */
-        //} while(recvpkt->hdr.ackno != next_seqno);
+        } while(recvpkt->hdr.ackno != next_seqno);
 
         free(sndpkt);
     }
