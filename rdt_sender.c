@@ -26,6 +26,7 @@ typedef struct node {
 } packet_list;
 
 packet_list * head = NULL;
+packet_list * tail = NULL;
 //head = (packet_list *) malloc(sizeof(packet_list));
 //head->next = NULL;
 
@@ -42,21 +43,20 @@ packet_list * head = NULL;
 //     current->next->next = NULL;
 // }
 
-void push(packet_list ** head, tcp_packet * val) {
+void push(packet_list ** tail, tcp_packet * val) {
+    
     packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
     new_node->val = val;
     new_node->next = NULL;
 
-    if (head == NULL) {
+    if (tail == NULL) {
         head = new_node;
+        tail = new_node;
         return;
     }
 
-    packet_list * current = head;
-    while (current->next != NULL) {
-        current = current->next;
-    }
-    current->next = new_node;
+    tail->next = new_node;
+    tail = tail->next;
 }
 
 
@@ -191,7 +191,7 @@ int main (int argc, char **argv)
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
         pack->hdr.seqno = send_base;
-        packArr[count] = pack; // should it be ?
+        packArr[count] = pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
 
@@ -267,10 +267,10 @@ int main (int argc, char **argv)
 
     while(i > 0)
     {
-        sndpkt = packArr[counter]; //idk
-        printf("123\n");
-        push(head, sndpkt); //pushing to the list
-        printf("123\n");
+        sndpkt = packArr[counter];
+        
+        push(tail, sndpkt); //pushing to the list
+        
         counter++;
         
         send_base = sndpkt->hdr.seqno;
@@ -302,7 +302,7 @@ int main (int argc, char **argv)
         // sndpkt->hdr.seqno = send_base;
         //Wait for ACK
         
-        do {
+       // do {
 
             //VLOG(DEBUG, "Sending packet %d to %s",
             //        send_base, inet_ntoa(serveraddr.sin_addr));
@@ -349,7 +349,7 @@ int main (int argc, char **argv)
             }
             //filling the packet list with new packets and sending them
             
-        //if() to start new timer for the lowest pack
+            //if() to start new timer for the lowest pack
                 
             while(new_packets_no > 0)
             {
@@ -375,7 +375,7 @@ int main (int argc, char **argv)
             
             
             /*resend pack if don't recv ACK */
-        } while(recvpkt->hdr.ackno != next_seqno);
+       // } while(recvpkt->hdr.ackno != next_seqno);
 
         free(sndpkt);
     }
