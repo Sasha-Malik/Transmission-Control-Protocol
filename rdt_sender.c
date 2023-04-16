@@ -43,7 +43,7 @@ packet_list * tail = NULL;
 //     current->next->next = NULL;
 // }
 
-void push(packet_list ** tail, tcp_packet * val) {
+void push(packet_list * tail, tcp_packet * val) {
     
     packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
     new_node->val = val;
@@ -285,7 +285,7 @@ int main (int argc, char **argv)
         }
         
         //keeping timer for the lowest packet
-        if(i == 10)
+        if(i == 10) //change this
             start_timer();
         
         i--;
@@ -338,9 +338,11 @@ int main (int argc, char **argv)
             } while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             stop_timer();
         
+            start_timer(); //starting timer for the new lowest
+        
             //popping the acked packets from the pack list
             int new_packets_no = 0;
-            while( head->val->hdr.seqno < recvpkt->hdr.ackno)
+            while( head->val->hdr.seqno < recvpkt->hdr.ackno )
             {
                 pop(&head);
                 new_packets_no++;
@@ -351,22 +353,25 @@ int main (int argc, char **argv)
                 
             while(new_packets_no > 0)
             {
-                sndpkt = packArr[counter]; //idk
-                push(head, sndpkt); //pushing to the list
-                counter++;
-                
-                send_base = sndpkt->hdr.seqno;
-                
-                VLOG(DEBUG, "Sending packet %d to %s",
-                        send_base, inet_ntoa(serveraddr.sin_addr));
-                
-                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
-                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+                if(counter < num_packs)
                 {
-                    error("sendto");
+                    sndpkt = packArr[counter]; //idk
+                    push(tail, sndpkt); //pushing to the list
+                    counter++;
+                    
+                    send_base = sndpkt->hdr.seqno;
+                    
+                    VLOG(DEBUG, "Sending packet %d to %s",
+                            send_base, inet_ntoa(serveraddr.sin_addr));
+                    
+                    if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
+                                ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+                    {
+                        error("sendto");
+                    }
+                    
+                    new_packets_no--;
                 }
-                
-                new_packets_no--;
             }
         
             next_seqno = recvpkt->hdr.ackno + DATA_SIZE; //next expected min ack
