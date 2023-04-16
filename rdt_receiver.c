@@ -91,60 +91,11 @@ int main(int argc, char **argv) {
     int curr_ackno = 0;
     int next_seqno = 0;
 
-    // while (1) {
-    //     /*
-    //      * recvfrom: receive a UDP datagram from a client
-    //      */
-    //     //VLOG(DEBUG, "waiting from server \n");
-    //     if (recvfrom(sockfd, buffer, MSS_SIZE, 0,
-    //             (struct sockaddr *) &clientaddr, (socklen_t *)&clientlen) < 0) {
-    //         error("ERROR in recvfrom");
-    //     }
-    //     recvpkt = (tcp_packet *) buffer;
-    //     assert(get_data_size(recvpkt) <= DATA_SIZE);
-    //     if ( recvpkt->hdr.data_size == 0) {
-    //         //VLOG(INFO, "End Of File has been reached");
-    //         fclose(fp);
-    //         break;
-    //     }
-    //     /* 
-    //      * sendto: ACK back to the client 
-    //      */
-    //     gettimeofday(&tp, NULL);
-    //     VLOG(DEBUG, "%lu, %d, %d", tp.tv_sec, recvpkt->hdr.data_size, recvpkt->hdr.seqno);
-
-    //     // cases:
-    //     // 1. seqno is what we expect - send ack and write to file and increment curr_ackno with data_size
-    //     // 2. seqno is not what we expect - send repeated ack of last received packet in order i.e. curr_ackno
-    //     //    store the packet in window buffer if it is not already there, and if there is space in the buffer
-        
-
-    //     if (recvpkt->hdr.seqno == curr_ackno) {
-    //         // write to file
-    //         fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-    //         curr_ackno += recvpkt->hdr.data_size;
-    //     } else {
-    //         // store in window buffer
-    //         // check if there is space in the buffer
-    //         // if there is space, store the packet in the buffer
-    //         // if there is no space, drop the packet
-    //     }
-
-    //     fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
-    //     fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-
-
-    //     sndpkt = make_packet(0);
-    //     sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
-    //     sndpkt->hdr.ctr_flags = ACK;
-    //     if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
-    //             (struct sockaddr *) &clientaddr, clientlen) < 0) {
-    //         error("ERROR in sendto");
-    //     }
-    // }
-
-    while(1) {
-        VLOG(DEBUG, "waiting from server \n");
+    while (1) {
+        /*
+         * recvfrom: receive a UDP datagram from a client
+         */
+        //VLOG(DEBUG, "waiting from server \n");
         if (recvfrom(sockfd, buffer, MSS_SIZE, 0,
                 (struct sockaddr *) &clientaddr, (socklen_t *)&clientlen) < 0) {
             error("ERROR in recvfrom");
@@ -156,6 +107,32 @@ int main(int argc, char **argv) {
             fclose(fp);
             break;
         }
+        /* 
+         * sendto: ACK back to the client 
+         */
+        gettimeofday(&tp, NULL);
+        VLOG(DEBUG, "%lu, %d, %d", tp.tv_sec, recvpkt->hdr.data_size, recvpkt->hdr.seqno);
+
+        // cases:
+        // 1. seqno is what we expect - send ack and write to file and increment curr_ackno with data_size
+        // 2. seqno is not what we expect - send repeated ack of last received packet in order i.e. curr_ackno
+        //    store the packet in window buffer if it is not already there, and if there is space in the buffer
+        
+
+        if (recvpkt->hdr.seqno == curr_ackno) {
+            // write to file
+            fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
+            curr_ackno += recvpkt->hdr.data_size;
+        } else {
+            // store in window buffer
+            // check if there is space in the buffer
+            // if there is space, store the packet in the buffer
+            // if there is no space, drop the packet
+        }
+
+        fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
+        fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
+
 
         sndpkt = make_packet(0);
         sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
