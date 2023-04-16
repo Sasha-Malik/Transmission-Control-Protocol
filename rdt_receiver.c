@@ -118,29 +118,47 @@ int main(int argc, char **argv) {
         // 2. seqno is not what we expect - send repeated ack of last received packet in order i.e. curr_ackno
         //    store the packet in window buffer if it is not already there, and if there is space in the buffer
         
-
         if (recvpkt->hdr.seqno == curr_ackno) {
-            // write to file
+            //write to file and appropriate location
+            fseek(fp,0, SEEK_SET);
+            fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
             fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-            curr_ackno += recvpkt->hdr.data_size;
-        } else {
-            // store in window buffer
-            // check if there is space in the buffer
-            // if there is space, store the packet in the buffer
-            // if there is no space, drop the packet
+            curr_ackno = next_seqno + recvpkt->hdr.data_size;
+            next_seqno += recvpkt->hdr.data_size;
+
+            // send cumulative ack for anything buffered in window buffer
+            for (int i = 0; i < 10; i++) {
+                if (window_buffer[i] != NULL && window_buffer[i]->hdr.seqno == curr_ackno) {
+                    //write to file and appropriate location
+                    fseek(fp,0, SEEK_SET);
+                    fseek(fp, window_buffer[i]->hdr.seqno, SEEK_SET);
+                    fwrite(window_buffer[i]->data, 1, window_buffer[i]->hdr.data_size, fp);
+                    curr_ackno = next_seqno + window_buffer[i]->hdr.data_size;
+                    next_seqno += window_buffer[i]->hdr.data_size;
+                    window_buffer[i] = NULL;
+                }
+            }
+
+            // send cumulative ack
+            sndpkt = make_packet(0);
+            sndpkt->hdr.ackno = curr_ackno;
+            sndpkt->hdr.ctr_flags = ACK;
+            if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
+                    (struct sockaddr *) &clientaddr, clientlen) < 0) {
+                error("ERROR in sendto");
+            }
         }
 
-        fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
-        fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
 
-
-        sndpkt = make_packet(0);
-        sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
-        sndpkt->hdr.ctr_flags = ACK;
-        if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
-                (struct sockaddr *) &clientaddr, clientlen) < 0) {
-            error("ERROR in sendto");
-        }
+        // fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
+        // fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
+        // sndpkt = make_packet(0);
+        // sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+        // sndpkt->hdr.ctr_flags = ACK;
+        // if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
+        //         (struct sockaddr *) &clientaddr, clientlen) < 0) {
+        //     error("ERROR in sendto");
+        // }
     }
 
     return 0;
