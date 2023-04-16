@@ -156,6 +156,8 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
+    num_packs++; // for datasize 0 final packet
+
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
     len = fread(buffer, 1, DATA_SIZE, fp); // read outside - first step
@@ -167,7 +169,7 @@ int main (int argc, char **argv)
     
     while (len > 0)
     { 
-        printf("seqno: %d\n", send_base);
+        // printf("seqno: %d\n", send_base);
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
         pack->hdr.seqno = send_base;
@@ -185,6 +187,10 @@ int main (int argc, char **argv)
         }
         // printf("counts: %d \n", count);
     }
+    // printf("COMPLETE seqno: %d\n", send_base);
+    // printf("count: %d\n", count);
+
+
 
     // CHANGES
 
