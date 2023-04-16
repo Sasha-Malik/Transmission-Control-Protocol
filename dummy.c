@@ -47,7 +47,7 @@ tcp_packet* pop(packet_list ** head) {
     packet_list * next_node = NULL;
 
     if (*head == NULL) {
-        return -1;
+        return NULL;
     }
 
     next_node = (*head)->next;
@@ -164,20 +164,19 @@ int main (int argc, char **argv)
 
     printf("num_packs: %d\n", num_packs);
     printf("size: %d\n", size);
-
-    next_seqno = 0;
     
     while (len > 0)
-    {
-        send_base = next_seqno;
-        next_seqno = send_base + len;
-        
+    { 
+        printf("seqno: %d\n", send_base);
         tcp_packet *pack = make_packet(len);
         memcpy(pack->data, buffer, len);
         pack->hdr.seqno = send_base;
         packArr[count] = pack; // should it be ?
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
+
+        next_seqno =send_base + len;
+        send_base = next_seqno;
         
         if (len <= 0) {
             pack = make_packet(0); // to signal end of file
