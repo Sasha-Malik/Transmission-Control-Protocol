@@ -42,8 +42,7 @@ packet_list * head = NULL;
 //     current->next->next = NULL;
 // }
 
-
-void push(packet_list ** head, tcp_packet * val) {
+void push(packet_list * head, tcp_packet * val) {
     packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
     new_node->val = val;
     new_node->next = NULL;
@@ -59,6 +58,7 @@ void push(packet_list ** head, tcp_packet * val) {
     }
     current->next = new_node;
 }
+
 
 tcp_packet* pop(packet_list ** head) {
     tcp_packet* retval = NULL;
@@ -260,6 +260,13 @@ int main (int argc, char **argv)
     
     //sending first 10 packets
     int i = 10;
+
+
+    if (num_packs < 10) {
+        i = num_packs;
+    }
+
+
     while(i > 0)
     {
         sndpkt = packArr[counter]; //idk
@@ -270,7 +277,7 @@ int main (int argc, char **argv)
         
         VLOG(DEBUG, "Sending packet %d to %s",
                 send_base, inet_ntoa(serveraddr.sin_addr));
-        
+
         if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
                     ( const struct sockaddr *)&serveraddr, serverlen) < 0)
         {
@@ -295,7 +302,7 @@ int main (int argc, char **argv)
         // sndpkt->hdr.seqno = send_base;
         //Wait for ACK
         
-        //do {
+        do {
 
             //VLOG(DEBUG, "Sending packet %d to %s",
             //        send_base, inet_ntoa(serveraddr.sin_addr));
@@ -368,7 +375,7 @@ int main (int argc, char **argv)
             
             
             /*resend pack if don't recv ACK */
-        //} while(recvpkt->hdr.ackno != next_seqno);
+        } while(recvpkt->hdr.ackno != next_seqno);
 
         free(sndpkt);
     }
