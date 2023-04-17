@@ -22,7 +22,9 @@
 tcp_packet *recvpkt;
 tcp_packet *sndpkt;
 
-tcp_packet *window_buffer[10]; //window buffer - CREATE LIST HERE.
+// make a new packet_list to store buffered packets
+packet_list * head = NULL;
+packet_list * tail = NULL;
 
 int main(int argc, char **argv) {
     int sockfd; /* socket */
@@ -119,23 +121,24 @@ int main(int argc, char **argv) {
         //    store the packet in window buffer if it is not already there, and if there is space in the buffer
         
         if (recvpkt->hdr.seqno == curr_ackno) {
-            //write to file and appropriate location
+            //write to file at appropriate location
             fseek(fp,0, SEEK_SET);
             fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
             fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
             curr_ackno = next_seqno + recvpkt->hdr.data_size;
             next_seqno += recvpkt->hdr.data_size;
 
-            // send cumulative ack for anything buffered in window buffer
-            for (int i = 0; i < 10; i++) {
-                if (window_buffer[i] != NULL && window_buffer[i]->hdr.seqno == curr_ackno) {
-                    //write to file and appropriate location
+            packet_list * curr = head;
+            while (curr != NULL) {
+                if (curr->val->hdr.seqno == curr_ackno) {
+                    //write to file at appropriate location
                     fseek(fp,0, SEEK_SET);
-                    fseek(fp, window_buffer[i]->hdr.seqno, SEEK_SET);
-                    fwrite(window_buffer[i]->data, 1, window_buffer[i]->hdr.data_size, fp);
-                    curr_ackno = next_seqno + window_buffer[i]->hdr.data_size;
-                    next_seqno += window_buffer[i]->hdr.data_size;
-                    window_buffer[i] = NULL;
+                    fseek(fp, curr->val->hdr.seqno, SEEK_SET);
+                    fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
+                    curr_ackno = next_seqno + curr->val->hdr.data_size;
+                    next_seqno += curr->val->hdr.data_size;
+                    pop(&head);
+                    curr = head->next;
                 }
             }
 

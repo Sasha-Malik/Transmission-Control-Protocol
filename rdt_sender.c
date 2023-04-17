@@ -20,54 +20,8 @@
 #define RETRY  120 //millisecond
 
 
-// typedef struct node {
-//     tcp_packet * val;
-//     struct node * next;
-// } packet_list;
-
 packet_list * head = NULL;
 packet_list * tail = NULL;
-
-// void push(packet_list ** head, packet_list ** tail, tcp_packet * val) {
-    
-//     packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
-//     new_node->val = val;
-//     new_node->next = NULL;
-
-//     if (*tail == NULL) {
-//         *head = new_node;
-//         *tail = new_node;
-//         return;
-//     }
-    
-//     else {
-//         (*tail)->next = new_node;
-//         *tail = (*tail)->next;
-//     }
-   
-// }
-
-
-// void pop(packet_list ** head) {
-//     // tcp_packet* retval = NULL;
-//     // packet_list * next_node = NULL;
-
-//     // if (*head == NULL) {
-//     //     return NULL;
-//     // }
-
-//     // next_node = (*head)->next;
-//     // retval = (*head)->val;
-//     // free(*head);
-//     // *head = next_node;
-
-//     // return retval;
-    
-//     //packet_list * temp = head;
-//     *head = (*head)->next;
-//     //free(temp);
-// }
-
 
 int next_seqno=0;
 int send_base=0;
@@ -244,7 +198,7 @@ int main (int argc, char **argv)
         
         push(&head, &tail, sndpkt); //pushing to the list
         
-        printf("why : %d \n",head->val->hdr.seqno);
+        // printf("why : %d \n",head->val->hdr.seqno);
         
         counter++;
         
@@ -266,12 +220,12 @@ int main (int argc, char **argv)
         i--;
     }
 
-    packet_list* temp = head;
-    while(temp != NULL)
-    {
-        printf("list : %d \n",temp->val->hdr.seqno);
-        temp = temp->next;
-    }
+    // packet_list* temp = head;
+    // while(temp != NULL)
+    // {
+    //     printf("list : %d \n",temp->val->hdr.seqno);
+    //     temp = temp->next;
+    // }
     
     send_base = 0; //nothing has been recieved
     next_seqno = send_base + DATA_SIZE; //the first ack will be
@@ -290,9 +244,9 @@ int main (int argc, char **argv)
                 }
 
                 recvpkt = (tcp_packet *)buffer;
-                printf("%d \n", get_data_size(recvpkt));
+                // printf("%d \n", get_data_size(recvpkt));
                 assert(get_data_size(recvpkt) <= DATA_SIZE);
-                printf("123: %d\n", recvpkt->hdr.ackno);
+                // printf("123: %d\n", recvpkt->hdr.ackno);
                 
             //}while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             // stop_timer();
@@ -304,6 +258,13 @@ int main (int argc, char **argv)
             int new_packets_no = 0;
             printf("seq_no : %d \n",head->val->hdr.seqno);
             printf("ack_no : %d \n",recvpkt->hdr.ackno);
+
+            if (recvpkt->hdr.ackno == size) {
+                printf("done\n");
+                break;
+            }
+
+
             while(head->val->hdr.seqno < recvpkt->hdr.ackno)
             {
 
