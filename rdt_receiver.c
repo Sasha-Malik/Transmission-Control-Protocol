@@ -22,7 +22,7 @@
 tcp_packet *recvpkt;
 tcp_packet *sndpkt;
 
-tcp_packet *window_buffer[10]; //window buffer
+tcp_packet *window_buffer[10]; //window buffer - CREATE LIST HERE.
 
 int main(int argc, char **argv) {
     int sockfd; /* socket */

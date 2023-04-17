@@ -20,54 +20,53 @@
 #define RETRY  120 //millisecond
 
 
-typedef struct node {
-    tcp_packet * val;
-    struct node * next;
-} packet_list;
+// typedef struct node {
+//     tcp_packet * val;
+//     struct node * next;
+// } packet_list;
 
 packet_list * head = NULL;
 packet_list * tail = NULL;
 
-
-void push(packet_list ** tail, tcp_packet * val) {
+// void push(packet_list ** head, packet_list ** tail, tcp_packet * val) {
     
-    packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
-    new_node->val = val;
-    new_node->next = NULL;
+//     packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
+//     new_node->val = val;
+//     new_node->next = NULL;
 
-    if (*tail == NULL) {
-        head = new_node;
-        *tail = new_node;
-        return;
-    }
+//     if (*tail == NULL) {
+//         *head = new_node;
+//         *tail = new_node;
+//         return;
+//     }
     
-    else {
-        (*tail)->next = new_node;
-        *tail = (*tail)->next;
-    }
+//     else {
+//         (*tail)->next = new_node;
+//         *tail = (*tail)->next;
+//     }
    
-}
+// }
 
 
-void pop(packet_list ** head) {
-    // tcp_packet* retval = NULL;
-    // packet_list * next_node = NULL;
+// void pop(packet_list ** head) {
+//     // tcp_packet* retval = NULL;
+//     // packet_list * next_node = NULL;
 
-    // if (*head == NULL) {
-    //     return NULL;
-    // }
+//     // if (*head == NULL) {
+//     //     return NULL;
+//     // }
 
-    // next_node = (*head)->next;
-    // retval = (*head)->val;
-    // free(*head);
-    // *head = next_node;
+//     // next_node = (*head)->next;
+//     // retval = (*head)->val;
+//     // free(*head);
+//     // *head = next_node;
 
-    // return retval;
+//     // return retval;
     
-    //packet_list * temp = head;
-    *head = (*head)->next;
-    //free(temp);
-}
+//     //packet_list * temp = head;
+//     *head = (*head)->next;
+//     //free(temp);
+// }
 
 
 int next_seqno=0;
@@ -243,7 +242,7 @@ int main (int argc, char **argv)
     {
         sndpkt = packArr[counter];
         
-        push(&tail, sndpkt); //pushing to the list
+        push(&head, &tail, sndpkt); //pushing to the list
         
         printf("why : %d \n",head->val->hdr.seqno);
         
@@ -325,7 +324,7 @@ int main (int argc, char **argv)
                 {
                     printf("counter234: %d\n", counter);
                     sndpkt = packArr[counter]; //idk
-                    push(&tail, sndpkt); //pushing to the list
+                    push(&head, &tail, sndpkt); //pushing to the list
                     counter++;
                     
                     send_base = sndpkt->hdr.seqno;

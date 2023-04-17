@@ -20,3 +20,26 @@ int get_data_size(tcp_packet *pkt)
     return pkt->hdr.data_size;
 }
 
+
+void push(packet_list ** head, packet_list ** tail, tcp_packet * val) {
+    
+    packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
+    new_node->val = val;
+    new_node->next = NULL;
+
+    if (*tail == NULL) {
+        *head = new_node;
+        *tail = new_node;
+        return;
+    }
+    else {
+        (*tail)->next = new_node;
+        *tail = (*tail)->next;
+    }  
+}
+
+
+void pop(packet_list ** head) {
+    *head = (*head)->next;
+}
+
