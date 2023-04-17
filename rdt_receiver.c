@@ -152,6 +152,22 @@ int main(int argc, char **argv) {
             }
         }
 
+        else {
+            // send repeated ack
+            sndpkt = make_packet(0);
+            sndpkt->hdr.ackno = curr_ackno;
+            sndpkt->hdr.ctr_flags = ACK;
+            if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
+                    (struct sockaddr *) &clientaddr, clientlen) < 0) {
+                error("ERROR in sendto");
+            }
+
+            // store packet in buffer
+            if (recvpkt->hdr.seqno > curr_ackno) { // ignore packets that are already received
+                push(&head, &tail, recvpkt);
+            }
+
+        }
 
         // fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
         // fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);

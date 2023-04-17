@@ -192,6 +192,8 @@ int main (int argc, char **argv)
         i = num_packs;
     }
 
+    int set_timer = 0;
+
     while(i > 0)
     {
         sndpkt = packArr[counter];
@@ -214,8 +216,11 @@ int main (int argc, char **argv)
         }
         
         //keeping timer for the lowest packet
-        // if(i == 10) //change this
-            // start_timer();
+        if(set_timer == 0)
+        {
+            start_timer();
+            set_timer = 1;
+        }
         
         i--;
     }
@@ -249,7 +254,12 @@ int main (int argc, char **argv)
                 // printf("123: %d\n", recvpkt->hdr.ackno);
                 
             //}while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
-            // stop_timer();
+
+            // stop timer if the acked packet is the lowest
+            if (recvpkt->hdr.ackno == head->val->hdr.seqno) {
+                stop_timer();
+                // resend_packets();
+            }
         
             // start_timer(); //starting timer for the new lowest
         
