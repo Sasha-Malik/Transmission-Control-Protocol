@@ -86,7 +86,7 @@ void init_timer(int delay, void (*sig_handler)(int))
 int main (int argc, char **argv)
 {
     int portno, len;
-    int next_seqno;
+    int next_seqno = 0;
     char *hostname;
     char buffer[DATA_SIZE];
     FILE *fp;
@@ -225,12 +225,12 @@ int main (int argc, char **argv)
         i--;
     }
 
-    // packet_list* temp = head;
-    // while(temp != NULL)
-    // {
-    //     printf("list : %d \n",temp->val->hdr.seqno);
-    //     temp = temp->next;
-    // }
+//    packet_list* temp = head;
+//     while(temp != NULL)
+//     {
+//         printf("list : %d \n",temp->val->hdr.seqno);
+//         temp = temp->next;
+//     }
     
     send_base = 0; //nothing has been recieved
     next_seqno = send_base + DATA_SIZE; //the first ack will be
@@ -271,6 +271,12 @@ int main (int argc, char **argv)
 
             if (recvpkt->hdr.ackno == size) {
                 printf("done\n");
+                sndpkt = make_packet(0);
+                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
+                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+                {
+                    error("sendto");
+                }
                 break;
             }
 
@@ -294,7 +300,7 @@ int main (int argc, char **argv)
                 while(new_packets_no > 0)
                 {
                     printf("counter234: %d\n", counter);
-                    sndpkt = packArr[counter]; //idk
+                    sndpkt = packArr[counter];
                     push(&head, &tail, sndpkt); //pushing to the list
                     counter++;
                     
