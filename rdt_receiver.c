@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 
 
     int curr_ackno = 0;
-    int next_seqno = 0;
+    //int next_seqno = 0;
     
    
 
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
                     fseek(fp,0, SEEK_SET);
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
-                    curr_ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+                    curr_ackno = cur->val->hdr.seqno + cur->val->hdr.data_size;
                    // next_seqno += curr->val->hdr.data_size;
                     curr = head->next;
                     pop(&head);
