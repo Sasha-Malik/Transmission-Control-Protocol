@@ -132,8 +132,8 @@ int main(int argc, char **argv) {
             //printf("%d \n",recvpkt->hdr.seqno);
 
             fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-            curr_ackno = next_seqno + recvpkt->hdr.data_size;
-            next_seqno += recvpkt->hdr.data_size;
+            curr_ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+            //next_seqno += recvpkt->hdr.data_size;
 
             packet_list * curr = head;
             while (curr != NULL) {
@@ -142,8 +142,8 @@ int main(int argc, char **argv) {
                     fseek(fp,0, SEEK_SET);
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
-                    curr_ackno = next_seqno + curr->val->hdr.data_size;
-                    next_seqno += curr->val->hdr.data_size;
+                    curr_ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+                   // next_seqno += curr->val->hdr.data_size;
                     curr = head->next;
                     pop(&head);
                    
