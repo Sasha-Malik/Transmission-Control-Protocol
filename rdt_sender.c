@@ -259,20 +259,20 @@ int main (int argc, char **argv)
         
         
             // 3 duplicate acks
-            if(duplicateACK == 3)
-            {
-                stop_timer();
-                start_timer();
-                
-                sndpkt = head->val;
-
-                VLOG(INFO, "Timout happend");
-                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
-                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
-                {
-                    error("sendto");
-                }
-            }
+//            if(duplicateACK == 3)
+//            {
+//                stop_timer();
+//                start_timer();
+//
+//                sndpkt = head->val;
+//
+//                VLOG(INFO, "Timout happend");
+//                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
+//                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+//                {
+//                    error("sendto");
+//                }
+//            }
         
            
             int new_packets_no = 0;
