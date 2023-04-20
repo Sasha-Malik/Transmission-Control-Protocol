@@ -149,23 +149,32 @@ int main(int argc, char **argv) {
             curr_ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
 
             packet_list * curr = head;
+            int found = 0;
             while (curr != NULL) {
-                if (curr->val->hdr.seqno == curr_ackno) {
+                //if (curr->val->hdr.seqno == curr_ackno) {
                     //write to file at appropriate location
+//                    fseek(fp,0, SEEK_SET);
+//                    fseek(fp, curr->val->hdr.seqno, SEEK_SET);
+//                    fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
+//                    printf("curr->val->hdr.seqno: %d\n", curr->val->hdr.seqno );
+//                    printf("curr->val->hdr.data_size: %d\n", curr->val->hdr.data_size);
+//                    printf("curracko: %d\n", curr_ackno);
+//                    curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
+                if (curr->val->hdr.seqno == curr_ackno)
+                {
                     fseek(fp,0, SEEK_SET);
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
-                    printf("curr->val->hdr.seqno: %d\n", curr->val->hdr.seqno );
-                    printf("curr->val->hdr.data_size: %d\n", curr->val->hdr.data_size);
-                    printf("curracko: %d\n", curr_ackno);
                     curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
-                    printf("curracko: %d\n", curr_ackno);
+                   curr = head;
+                    //found = 1;
+                }
+                
+                else
                     curr = head->next;
-                    pop(&head);
-                }
-                else {
-                    break;
-                }
+              
+                // pop(&head);
+               
             }
 
             // send cumulative ack
