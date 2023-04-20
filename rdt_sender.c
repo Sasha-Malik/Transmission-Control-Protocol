@@ -122,7 +122,6 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
-    num_packs++; // for end of file packet
 
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
@@ -237,13 +236,15 @@ int main (int argc, char **argv)
         
             //end of file empty packet
             if (recvpkt->hdr.ackno == size) {
-                printf("done\n");
+                printf("Done\n");
                 sndpkt = make_packet(0);
+                sndpkt->hdr.seqno = size;
                 if(sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
                             ( const struct sockaddr *)&serveraddr, serverlen) < 0)
                 {
                     error("sendto");
                 }
+                VLOG(DEBUG, "Sending packet %d to %s", 0, inet_ntoa(serveraddr.sin_addr));
                 break;
             }
 

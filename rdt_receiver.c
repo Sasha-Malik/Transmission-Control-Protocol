@@ -13,9 +13,6 @@
 #include "packet.h"
 
 
-// INORDER REVIEW NEEDED
-
-
 /*
  * You are required to change the implementation to support
  * window size greater than one.
@@ -94,9 +91,7 @@ int main(int argc, char **argv) {
     clientlen = sizeof(clientaddr);
 
 
-    int curr_ackno = 0;
-    //int next_seqno = 0;
-    
+    int curr_ackno = 0;    
    
 
     while (1) {
@@ -110,16 +105,17 @@ int main(int argc, char **argv) {
         }
         recvpkt = (tcp_packet *) buffer;
         assert(get_data_size(recvpkt) <= DATA_SIZE);
-        if ( recvpkt->hdr.data_size == 0 ) {
-            VLOG(INFO, "End Of File has been reached");
-            fclose(fp);
-            break;
-        }
         /* 
          * sendto: ACK back to the client 
          */
         gettimeofday(&tp, NULL);
         VLOG(DEBUG, "%lu, %d, %d", tp.tv_sec, recvpkt->hdr.data_size, recvpkt->hdr.seqno);
+
+        if (recvpkt->hdr.data_size == 0) {
+            VLOG(INFO, "End Of File has been reached");
+            fclose(fp);
+            break;
+        }
 
         // cases:
         // 1. seqno is what we expect - send ack and write to file and increment curr_ackno with data_size
@@ -133,10 +129,8 @@ int main(int argc, char **argv) {
             fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
             //printf("%s \n\n",recvpkt->data);
             //printf("%d \n",recvpkt->hdr.seqno);
-
             fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
             curr_ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
-            //next_seqno += recvpkt->hdr.data_size;
 
             packet_list * curr = head;
             while (curr != NULL) {
@@ -146,13 +140,13 @@ int main(int argc, char **argv) {
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
                     curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
-                   // next_seqno += curr->val->hdr.data_size;
                     curr = head->next;
                     pop(&head);
                    
                 }
-                else
+                else {
                     break;
+                }
             }
 
             // send cumulative ack
@@ -183,15 +177,6 @@ int main(int argc, char **argv) {
 
         }
 
-        // fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
-        // fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-        // sndpkt = make_packet(0);
-        // sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
-        // sndpkt->hdr.ctr_flags = ACK;
-        // if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
-        //         (struct sockaddr *) &clientaddr, clientlen) < 0) {
-        //     error("ERROR in sendto");
-        // }
     }
 
     return 0;
