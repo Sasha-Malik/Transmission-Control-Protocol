@@ -120,6 +120,7 @@ int main (int argc, char **argv)
         num_packs++;
     }
 
+    num_packs++; // for end of file packet
 
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
@@ -145,11 +146,11 @@ int main (int argc, char **argv)
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
         
-        // if (len <= 0) {
-        //     pack = make_packet(0); // to signal end of file
-        //     packArr[count] = pack;
-        //     count++;
-        // }
+        if (len <= 0) {
+            pack = make_packet(0); // to signal end of file
+            packArr[count] = pack;
+            count++;
+        }
         // printf("counts: %d \n", count);
     }
     
