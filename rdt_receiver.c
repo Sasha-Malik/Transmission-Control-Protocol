@@ -203,8 +203,15 @@ int main(int argc, char **argv) {
 
             // store packet in buffer
             if (recvpkt->hdr.seqno > curr_ackno) { // ignore packets that are already received
+                
                 push(&head, &tail, recvpkt);
                 printf("buffered: %d\n", recvpkt->hdr.seqno);
+//                packet_list* cur = head;
+//                while(cur !=NULL)
+//                {
+//                    printf("%d \n",cur->val->hdr.seqno);
+//                    cur = cur->next;
+//                }
             }
 
         }
