@@ -139,7 +139,8 @@ int main(int argc, char **argv) {
         //    store the packet in window buffer if it is not already there, and if there is space in the buffer
        
         if (recvpkt->hdr.seqno == curr_ackno) {
-            //VLOG(DEBUG, "written");
+            
+
             //write to file at appropriate location
             fseek(fp,0, SEEK_SET);
             fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
@@ -152,6 +153,7 @@ int main(int argc, char **argv) {
             
             //keep looking for the next curr_ackno packets in the buffer
             int found = 0;
+            if(head!=NULL)
             while (1) {
                 
                 if (curr->val->hdr.seqno == curr_ackno)
@@ -160,7 +162,7 @@ int main(int argc, char **argv) {
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
                     curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
-                    pop(&head, &tail, &curr);
+                    popCurrent(&head, &tail, &curr);
                     found = 1;
                 }
                 

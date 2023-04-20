@@ -44,6 +44,9 @@ void pop(packet_list ** head) {
 }
 
 void popCurrent(packet_list ** head, packet_list ** tail, packet_list ** current) {
+    if(*head == NULL)
+        return;
+    
     if (*current == *head) {
         pop(head);
     }
