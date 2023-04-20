@@ -43,3 +43,15 @@ void pop(packet_list ** head) {
     *head = (*head)->next;
 }
 
+void popCurrent(packet_list ** head, packet_list ** tail, packet_list ** current) {
+    if (*current == *head) {
+        pop(head);
+    }
+    else {
+        packet_list * temp = *head;
+        while (temp->next != *current) {
+            temp = temp->next;
+        }
+        temp->next = (*current)->next;
+    }
+}
