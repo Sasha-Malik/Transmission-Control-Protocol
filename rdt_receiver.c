@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <errno.h> // exceptions
 
 #include "common.h"
 #include "packet.h"
@@ -67,6 +68,13 @@ int main(int argc, char **argv) {
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, 
             (const void *)&optval , sizeof(int));
 
+    // setting socket timeout option to a 10-second timeout for receiving data
+    struct timeval recv_timeout;
+    recv_timeout.tv_sec = 10;
+    // recv_timeout.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, 
+        &recv_timeout, sizeof(recv_timeout));
+
     /*
      * build the server's Internet address
      */
@@ -101,8 +109,16 @@ int main(int argc, char **argv) {
         //VLOG(DEBUG, "waiting from server \n");
         if (recvfrom(sockfd, buffer, MSS_SIZE, 0,
                 (struct sockaddr *) &clientaddr, (socklen_t *)&clientlen) < 0) {
-            error("ERROR in recvfrom");
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                VLOG(INFO, "Timeout occurred, closing receiver");
+                fclose(fp);
+                close(sockfd);
+                exit(0);
+            } else {
+                error("ERROR in recvfrom");
+            }
         }
+        
         recvpkt = (tcp_packet *) buffer;
         assert(get_data_size(recvpkt) <= DATA_SIZE);
         /* 
@@ -139,10 +155,13 @@ int main(int argc, char **argv) {
                     fseek(fp,0, SEEK_SET);
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
+                    printf("curr->val->hdr.seqno: %d\n", curr->val->hdr.seqno );
+                    printf("curr->val->hdr.data_size: %d\n", curr->val->hdr.data_size);
+                    printf("curracko: %d\n", curr_ackno);
                     curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
+                    printf("curracko: %d\n", curr_ackno);
                     curr = head->next;
                     pop(&head);
-                   
                 }
                 else {
                     break;
@@ -157,6 +176,7 @@ int main(int argc, char **argv) {
                     (struct sockaddr *) &clientaddr, clientlen) < 0) {
                 error("ERROR in sendto");
             }
+            printf("Ack sent: %d\n", sndpkt->hdr.ackno);
         }
 
         else {
@@ -169,10 +189,12 @@ int main(int argc, char **argv) {
                     (struct sockaddr *) &clientaddr, clientlen) < 0) {
                 error("ERROR in sendto");
             }
+            printf("Ack sent: %d\n", sndpkt->hdr.ackno);
 
             // store packet in buffer
             if (recvpkt->hdr.seqno > curr_ackno) { // ignore packets that are already received
                 push(&head, &tail, recvpkt);
+                printf("buffered: %d\n", recvpkt->hdr.seqno);
             }
 
         }

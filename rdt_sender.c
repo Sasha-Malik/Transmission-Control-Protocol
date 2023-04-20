@@ -231,11 +231,14 @@ int main (int argc, char **argv)
 
             recvpkt = (tcp_packet *)buffer;
             assert(get_data_size(recvpkt) <= DATA_SIZE);
+
+            printf("seq_no : %d \n",head->val->hdr.seqno);
+            printf("ack_no : %d \n",recvpkt->hdr.ackno);
               
             //}while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
         
             //end of file empty packet
-            if (recvpkt->hdr.ackno == size) {
+            if (recvpkt->hdr.ackno == size) {       
                 printf("Done\n");
                 sndpkt = make_packet(0);
                 sndpkt->hdr.seqno = size;
@@ -261,25 +264,26 @@ int main (int argc, char **argv)
         
         
             // 3 duplicate acks
-//            if(duplicateACK == 3)
-//            {
-//                stop_timer();
-//                start_timer();
-//
-//                sndpkt = head->val;
-//
-//                VLOG(INFO, "Timout happend");
-//                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
-//                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
-//                {
-//                    error("sendto");
-//                }
-//            }
+           if(duplicateACK == 3)
+           {
+                printf("DUPLICATE\n");
+               stop_timer();
+               start_timer();
+
+               sndpkt = head->val;
+
+               VLOG(INFO, "Timeout happend");
+               if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
+                           ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+               {
+                   error("sendto");
+               }
+
+               duplicateACK = 0;
+           }
         
            
             int new_packets_no = 0;
-            //printf("seq_no : %d \n",head->val->hdr.seqno);
-            //printf("ack_no : %d \n",recvpkt->hdr.ackno);
        
             //popping the acked packets from the pack list
             while(recvpkt->hdr.ackno > head->val->hdr.seqno)
