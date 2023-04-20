@@ -89,12 +89,15 @@ int main(int argc, char **argv) {
      * main loop: wait for a datagram, then echo it
      */
     VLOG(DEBUG, "epoch time, bytes received, sequence number");
+    
 
     clientlen = sizeof(clientaddr);
 
 
     int curr_ackno = 0;
-    int next_seqno = 0;
+    //int next_seqno = 0;
+    
+   
 
     while (1) {
         /*
@@ -107,8 +110,8 @@ int main(int argc, char **argv) {
         }
         recvpkt = (tcp_packet *) buffer;
         assert(get_data_size(recvpkt) <= DATA_SIZE);
-        if ( recvpkt->hdr.data_size == 0) {
-            //VLOG(INFO, "End Of File has been reached");
+        if ( recvpkt->hdr.data_size == 0 ) {
+            VLOG(INFO, "End Of File has been reached");
             fclose(fp);
             break;
         }
@@ -122,14 +125,18 @@ int main(int argc, char **argv) {
         // 1. seqno is what we expect - send ack and write to file and increment curr_ackno with data_size
         // 2. seqno is not what we expect - send repeated ack of last received packet in order i.e. curr_ackno
         //    store the packet in window buffer if it is not already there, and if there is space in the buffer
-        
+       
         if (recvpkt->hdr.seqno == curr_ackno) {
+            //VLOG(DEBUG, "written");
             //write to file at appropriate location
             fseek(fp,0, SEEK_SET);
             fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
+            //printf("%s \n\n",recvpkt->data);
+            //printf("%d \n",recvpkt->hdr.seqno);
+
             fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-            curr_ackno = next_seqno + recvpkt->hdr.data_size;
-            next_seqno += recvpkt->hdr.data_size;
+            curr_ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+            //next_seqno += recvpkt->hdr.data_size;
 
             packet_list * curr = head;
             while (curr != NULL) {
@@ -138,11 +145,14 @@ int main(int argc, char **argv) {
                     fseek(fp,0, SEEK_SET);
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
-                    curr_ackno = next_seqno + curr->val->hdr.data_size;
-                    next_seqno += curr->val->hdr.data_size;
-                    pop(&head);
+                    curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
+                   // next_seqno += curr->val->hdr.data_size;
                     curr = head->next;
+                    pop(&head);
+                   
                 }
+                else
+                    break;
             }
 
             // send cumulative ack
@@ -156,6 +166,7 @@ int main(int argc, char **argv) {
         }
 
         else {
+            //VLOG(DEBUG, "huh");
             // send repeated ack
             sndpkt = make_packet(0);
             sndpkt->hdr.ackno = curr_ackno;
