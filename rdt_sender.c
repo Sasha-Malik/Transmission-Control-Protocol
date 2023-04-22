@@ -217,6 +217,7 @@ int main (int argc, char **argv)
         return 0;
     }
     
+<<<<<<< HEAD
    packet_list* cur = head;
    while(cur !=NULL)
    {
@@ -224,6 +225,14 @@ int main (int argc, char **argv)
        cur = cur->next;
    }
    printf("\n");
+=======
+//    packet_list* cur = head;
+//    while(cur !=NULL)
+//    {
+//        printf("%d \n",cur->val->hdr.seqno);
+//        cur = cur->next;
+//    }
+>>>>>>> af544679128f4a1670b2492e54c069af610d5eb7
     
     send_base = 0; //nothing has been recieved
     next_seqno += head->val->hdr.data_size; //the first ack will be
