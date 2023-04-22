@@ -32,4 +32,4 @@ void push(packet_list ** head, packet_list ** tail, tcp_packet * val);
 
 void pop(packet_list ** head);
 
-void popCurr(packet_list ** head, packet_list ** tail, packet_list ** curr);
+void popCurrent(packet_list ** head, packet_list ** tail, packet_list ** current);

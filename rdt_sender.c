@@ -217,17 +217,26 @@ int main (int argc, char **argv)
         return 0;
     }
     
+   packet_list* cur = head;
+   while(cur !=NULL)
+   {
+       printf("%d ",cur->val->hdr.seqno);
+       cur = cur->next;
+   }
+   printf("\n");
+    
     send_base = 0; //nothing has been recieved
     next_seqno += head->val->hdr.data_size; //the first ack will be
 
     while (1)
     {
-
+        
             if(recvfrom(sockfd, buffer, MSS_SIZE, 0,
                         (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0)
             {
                 error("recvfrom");
             }
+
 
             recvpkt = (tcp_packet *)buffer;
             assert(get_data_size(recvpkt) <= DATA_SIZE);
@@ -236,7 +245,7 @@ int main (int argc, char **argv)
             printf("ack_no : %d \n",recvpkt->hdr.ackno);
               
             //}while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
-        
+
             //end of file empty packet
             if (recvpkt->hdr.ackno == size) {       
                 printf("Done\n");
@@ -250,6 +259,8 @@ int main (int argc, char **argv)
                 VLOG(DEBUG, "Sending packet %d to %s", 0, inet_ntoa(serveraddr.sin_addr));
                 break;
             }
+        
+  
 
             // stop timer if the acked packet includes the lowest
             if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
@@ -281,7 +292,7 @@ int main (int argc, char **argv)
 
                duplicateACK = 0;
            }
-        
+      
            
             int new_packets_no = 0;
        
@@ -294,17 +305,20 @@ int main (int argc, char **argv)
                     break;
                 }
             }
-
+       
+        
             //filling the packet list with new packets and sending them
-            if(count < num_packs)
-            {
+//            if(counter < num_packs)
+//            {
                 while(new_packets_no > 0)
                 {
+                    if(counter < num_packs)
+                    {
                     //printf("counter234: %d\n", counter);
                     sndpkt = packArr[counter];
                     push(&head, &tail, sndpkt); //pushing to the list
                     counter++;
-                    
+                                        
                     send_base = sndpkt->hdr.seqno;
                     
                     VLOG(DEBUG, "Sending packet %d to %s",
@@ -317,10 +331,13 @@ int main (int argc, char **argv)
                     }
                     
                     new_packets_no--;
+                    }
+                    
+                    else
+                        break;
                 }
-            }
-        
-            //next_seqno = recvpkt->hdr.ackno + DATA_SIZE; //next expected min ack
+//            }
+    
 
         //free(sndpkt);
     }
