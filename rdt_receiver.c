@@ -248,21 +248,7 @@ int main(int argc, char **argv) {
 
             // store packet in buffer
             if (recvpkt->hdr.seqno > curr_ackno) { // ignore packets that are already received
-                
-                // printf("\nTesting Buffer:\n");
-                // printf("recvpkt->hdr.seqno: %d, ", recvpkt->hdr.seqno);
-                // printf("curr_ackno: %d\n", curr_ackno);
-
-                // packet_list* cur = head;
-                // printf("Buffer before:\n");
-               // while(cur !=NULL)
-               // {
-               //     printf("%d ",cur->val->hdr.seqno);
-               //     cur = cur->next;
-               // }
-               // printf("\n");
-
-
+    
                packet_list* check = head;
                while (check!= NULL){
                     if (check->val->hdr.seqno == recvpkt->hdr.seqno){
@@ -272,24 +258,13 @@ int main(int argc, char **argv) {
                }
 
                if (check == NULL){
-                    // tcp_packet * copy = copied(recvpkt);
                    size_new = recvpkt->hdr.data_size;
                    tcp_packet * copy = make_packet(size_new);
                    memcpy(copy, recvpkt, TCP_HDR_SIZE + size_new);
 
                     push(&head, &tail, copy);
-                    // printf("buffered: %d\n", copy->hdr.seqno);
                }
-                
-               
-               // packet_list* newcur = head;
-               // printf("Buffer after:\n");
-               // while(newcur !=NULL)
-               // {
-               //     printf("%d ",newcur->val->hdr.seqno);
-               //     newcur = newcur->next;
-               // }
-               // printf("\n");
+
             }
 
         }
