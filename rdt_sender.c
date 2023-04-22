@@ -105,7 +105,6 @@ int main (int argc, char **argv)
         error(argv[3]);
     }
 
-    // CHANGES
 
     // size of file to determine num of packets
     fseek(fp, 0, SEEK_END);
@@ -123,14 +122,15 @@ int main (int argc, char **argv)
     }
 
 
+    //array to store all packets
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
 
     len = fread(buffer, 1, DATA_SIZE, fp); // read outside - first step
 
     int count = 0;
 
-    printf("num_packs: %d\n", num_packs);
-    printf("size: %d\n", size);
+    //printf("num_packs: %d\n", num_packs);
+    //printf("size: %d\n", size);
     
     while (len > 0)
     {
@@ -186,6 +186,7 @@ int main (int argc, char **argv)
 
     int set_timer = 0;
 
+    // incase there are less tahn 10 in total
     while(i > 0)
     {
         sndpkt = packArr[counter];
@@ -217,13 +218,13 @@ int main (int argc, char **argv)
         return 0;
     }
     
-   packet_list* cur = head;
-   while(cur !=NULL)
-   {
-       printf("%d ",cur->val->hdr.seqno);
-       cur = cur->next;
-   }
-   printf("\n");
+//   packet_list* cur = head;
+//   while(cur !=NULL)
+//   {
+//       printf("%d ",cur->val->hdr.seqno);
+//       cur = cur->next;
+//   }
+//   printf("\n");
     
     send_base = 0; //nothing has been recieved
     next_seqno += head->val->hdr.data_size; //the first ack will be
@@ -240,7 +241,6 @@ int main (int argc, char **argv)
 
             recvpkt = (tcp_packet *)buffer;
             assert(get_data_size(recvpkt) <= DATA_SIZE);
-
 
             //end of file empty packet
             if (recvpkt->hdr.ackno == size) {       
@@ -303,7 +303,7 @@ int main (int argc, char **argv)
             }
        
         
-            //filling the packet list with new packets and sending them
+            //filling the packet list with new packets(same number of acked packets) and sending them
 
                 while(new_packets_no > 0)
                 {
