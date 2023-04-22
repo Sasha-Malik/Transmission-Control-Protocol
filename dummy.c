@@ -1,35 +1,66 @@
-enum packet_type {
-    DATA,
-    ACK,
-};
+#include <stdlib.h>
+#include"packet.h"
 
-typedef struct {
-    int seqno;
-    int ackno;
-    int ctr_flags;
-    int data_size;
-}tcp_header;
+static tcp_packet zero_packet = {.hdr={0}};
+/*
+ * create TCP packet with header and space for data of size len
+ */
+tcp_packet* make_packet(int len)
+{
+    tcp_packet *pkt;
+    pkt = malloc(TCP_HDR_SIZE + len);
 
-#define MSS_SIZE    1500
-#define UDP_HDR_SIZE    8
-#define IP_HDR_SIZE    20
-#define TCP_HDR_SIZE    sizeof(tcp_header)
-#define DATA_SIZE   (MSS_SIZE - TCP_HDR_SIZE - UDP_HDR_SIZE - IP_HDR_SIZE)
-typedef struct {
-    tcp_header  hdr;
-    char    data[0];
-}tcp_packet;
+    *pkt = zero_packet;
+    pkt->hdr.data_size = len;
+    return pkt;
+}
 
-tcp_packet* make_packet(int seq);
-int get_data_size(tcp_packet *pkt);
+int get_data_size(tcp_packet *pkt)
+{
+    return pkt->hdr.data_size;
+}
 
-typedef struct node {
-    tcp_packet * val;
-    struct node * next;
-} packet_list;
 
-void push(packet_list ** head, packet_list ** tail, tcp_packet * val);
+void push(packet_list ** head, packet_list ** tail, tcp_packet * val) {
+    
+    packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
+    new_node->val = val;
+    new_node->next = NULL;
 
-void pop(packet_list ** head);
+    if (*tail == NULL) {
+        *head = new_node;
+        *tail = new_node;
+        return;
+    }
+    else {
+        (*tail)->next = new_node;
+        *tail = new_node;
+    }  
+}
 
-packet_list* popCurrent(packet_list ** head, packet_list ** tail, packet_list ** current);
+
+void pop(packet_list ** head) {
+    *head = (*head)->next;
+}
+
+packet_list* popCurrent(packet_list ** head, packet_list ** tail, packet_list ** current) {
+    if(*head == NULL)
+        return;
+
+    packet_list *next_elem = NULL;
+    
+    if (*current == *head) {
+        next_elem = (*head)->next;
+        pop(head);
+    }
+    else {
+        packet_list * temp = *head;
+        while (temp->next != *current) {
+            temp = temp->next;
+        }
+        next_elem = (*current)->next;
+        temp->next = (*current)->next;
+    }
+
+    return next_elem;
+}
