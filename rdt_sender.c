@@ -241,10 +241,6 @@ int main (int argc, char **argv)
             recvpkt = (tcp_packet *)buffer;
             assert(get_data_size(recvpkt) <= DATA_SIZE);
 
-            // printf("seq_no : %d \n",head->val->hdr.seqno);
-            // printf("ack_no : %d \n",recvpkt->hdr.ackno);
-              
-            //}while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
 
             //end of file empty packet
             if (recvpkt->hdr.ackno == size) {       
@@ -308,8 +304,7 @@ int main (int argc, char **argv)
        
         
             //filling the packet list with new packets and sending them
-//            if(counter < num_packs)
-//            {
+
                 while(new_packets_no > 0)
                 {
                     if(counter < num_packs)
@@ -336,10 +331,7 @@ int main (int argc, char **argv)
                     else
                         break;
                 }
-//            }
-    
 
-        //free(sndpkt);
     }
 
     return 0;
