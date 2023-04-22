@@ -95,9 +95,7 @@ int main(int argc, char **argv) {
      */
     VLOG(DEBUG, "epoch time, bytes received, sequence number");
     
-
     clientlen = sizeof(clientaddr);
-
 
     int curr_ackno = 0;    
    
@@ -141,12 +139,10 @@ int main(int argc, char **argv) {
        
         if (recvpkt->hdr.seqno == curr_ackno) {
             
-
             //write to file at appropriate location
             fseek(fp,0, SEEK_SET);
             fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
-            //printf("%s \n\n",recvpkt->data);
-            //printf("%d \n",recvpkt->hdr.seqno);
+        
             fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
             curr_ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
 
@@ -166,44 +162,14 @@ int main(int argc, char **argv) {
 
 
                     packet_list * test = head;
-                    // printf("\nBuffer before:\n");
-                   // while(test !=NULL)
-                   // {
-                   //     printf("%d ",test->val->hdr.seqno);
-                   //     test = test->next;
-                   // }
-                   // printf("\n");
-
-
+                   
                     if (popCurrent(&head, &tail, &curr) == NULL){
-                       //  printf("breaking\n");
-
-                       //  packet_list * test1 = head;
-                       //  printf("\nBuffer after:\n");
-                       //  if (test1 == NULL) {
-                       //      printf("empty\n");
-                       //  }
-                       // while(test1 !=NULL)
-                       // {
-                       //     printf("%d ",test1->val->hdr.seqno);
-                       //     test1 = test1->next;
-                       // }
-                       // printf("\n");
+                      
                         break;
                     }
                     found = 1;
 
-                   //  packet_list * test1 = head;
-                   //  printf("\nBuffer after:\n");
-                   //  if (test1 == NULL) {
-                   //      printf("empty\n");
-                   //  }
-                   // while(test1 !=NULL)
-                   // {
-                   //     printf("%d ",test1->val->hdr.seqno);
-                   //     test1 = test1->next;
-                   // }
-                   // printf("\n");
+                
                 }
                 
                 else {
@@ -248,7 +214,8 @@ int main(int argc, char **argv) {
 
             // store packet in buffer
             if (recvpkt->hdr.seqno > curr_ackno) { // ignore packets that are already received
-    
+                
+
                packet_list* check = head;
                while (check!= NULL){
                     if (check->val->hdr.seqno == recvpkt->hdr.seqno){
@@ -263,8 +230,7 @@ int main(int argc, char **argv) {
                    memcpy(copy, recvpkt, TCP_HDR_SIZE + size_new);
 
                     push(&head, &tail, copy);
-               }
-
+               }           
             }
 
         }
