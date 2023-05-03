@@ -10,8 +10,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include <assert.h>
-
-#include <stdbool.h>
+#include <math.h>
+// #include <stdbool.h>
 
 #include"packet.h"
 #include"common.h"
@@ -107,7 +107,7 @@ void calc_rto()
     if (rto < 1)
         rto = 1;
 
-    VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %f", rtt, estrtt, devrtt, rto);
+    VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %d", rtt, estrtt, devrtt, rto);
     init_timer(rto, resend_packets);
 }
 
@@ -334,7 +334,7 @@ int main (int argc, char **argv)
             //popping the acked packets from the pack list
             while(recvpkt->hdr.ackno > head->val->hdr.seqno)
             {
-                pop(&head);
+                pop(&head, &tail);
                 new_packets_no++;
                 if (head == NULL) {
                     break;
