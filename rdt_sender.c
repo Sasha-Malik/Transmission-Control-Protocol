@@ -10,8 +10,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include <assert.h>
-
-#include <stdbool.h>
+#include <math.h>
+// #include <stdbool.h>
 
 #include"packet.h"
 #include"common.h"
@@ -35,6 +35,17 @@ tcp_packet *recvpkt;
 sigset_t sigmask;
 
 int duplicateACK = 0; // counter to check duplicate ACKS
+
+
+// for RTO calculation
+int rtt_running = 0;
+struct timeval start, end;
+int rto = 3; // rto = estrtt + 4 * devrtt
+double rtt = 0; // rtt = end - start
+double estrtt = 0; // estrtt = (1 - alpha) * estrtt + alpha * rtt
+double devrtt = 0; // devrtt = (1 - beta) * devrtt + beta * |rtt - estrtt|
+double alpha = 0.125;
+double beta = 0.25;
 
 
 void resend_packets(int sig)
@@ -82,6 +93,28 @@ void init_timer(int delay, void (*sig_handler)(int))
 
     sigemptyset(&sigmask);
     sigaddset(&sigmask, SIGALRM);
+}
+
+
+void calc_rto()
+{
+    rtt = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+    estrtt = (1 - alpha) * estrtt + alpha * rtt;
+    devrtt = (1 - beta) * devrtt + beta * abs(rtt - estrtt);
+    rto = floor(estrtt + 4 * devrtt);
+
+    // rto should be at least 1ms - in case floor ret 0
+    if (rto < 1)
+        rto = 1;
+
+    VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %d", rtt, estrtt, devrtt, rto);
+    init_timer(rto, resend_packets);
+}
+
+void exp_backoff()
+{
+    rto *= 2;
+    init_timer(rto, resend_packets);
 }
 
 
@@ -169,7 +202,7 @@ int main (int argc, char **argv)
     assert(MSS_SIZE - TCP_HDR_SIZE > 0);
 
     //Stop and wait protocol
-    init_timer(RETRY, resend_packets);
+    init_timer(rto, resend_packets);
     next_seqno = 0;
 
     // reset to beg - FOR NOW
@@ -184,7 +217,7 @@ int main (int argc, char **argv)
         i = num_packs;
     }
 
-    int set_timer = 0;
+    // int set_timer = 0;
 
     // incase there are less tahn 10 in total
     while(i > 0)
@@ -204,10 +237,16 @@ int main (int argc, char **argv)
         }
         
         //keeping timer for the lowest packet
-        if(set_timer == 0)
+        if(!rtt_running)
         {
+            init_timer(rto, resend_packets); // initialize with rto
             start_timer();
-            set_timer = 1;
+            // set_timer = 1;
+
+            rtt_running = 1;
+            // record time for rtt
+            gettimeofday(&start, NULL);
+
         }
         
         i--;
@@ -295,7 +334,7 @@ int main (int argc, char **argv)
             //popping the acked packets from the pack list
             while(recvpkt->hdr.ackno > head->val->hdr.seqno)
             {
-                pop(&head);
+                pop(&head, &tail);
                 new_packets_no++;
                 if (head == NULL) {
                     break;
@@ -305,32 +344,32 @@ int main (int argc, char **argv)
         
             //filling the packet list with new packets(same number of acked packets) and sending them
 
-                while(new_packets_no > 0)
+            while(new_packets_no > 0)
+            {
+                if(counter < num_packs)
                 {
-                    if(counter < num_packs)
-                    {
-                    //printf("counter234: %d\n", counter);
-                    sndpkt = packArr[counter];
-                    push(&head, &tail, sndpkt); //pushing to the list
-                    counter++;
-                                        
-                    send_base = sndpkt->hdr.seqno;
-                    
-                    VLOG(DEBUG, "Sending packet %d to %s",
-                            send_base, inet_ntoa(serveraddr.sin_addr));
-                    
-                    if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
-                                ( const struct sockaddr *)&serveraddr, serverlen) < 0)
-                    {
-                        error("sendto");
-                    }
-                    
-                    new_packets_no--;
-                    }
-                    
-                    else
-                        break;
+                //printf("counter234: %d\n", counter);
+                sndpkt = packArr[counter];
+                push(&head, &tail, sndpkt); //pushing to the list
+                counter++;
+                                    
+                send_base = sndpkt->hdr.seqno;
+                
+                VLOG(DEBUG, "Sending packet %d to %s",
+                        send_base, inet_ntoa(serveraddr.sin_addr));
+                
+                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
+                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+                {
+                    error("sendto");
                 }
+                
+                new_packets_no--;
+                }
+                
+                else
+                    break;
+            }
 
     }
 

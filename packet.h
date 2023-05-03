@@ -30,6 +30,6 @@ typedef struct node {
 
 void push(packet_list ** head, packet_list ** tail, tcp_packet * val);
 
-void pop(packet_list ** head);
+void pop(packet_list ** head, packet_list ** tail);
 
 packet_list* popCurrent(packet_list ** head, packet_list ** tail, packet_list ** current);
