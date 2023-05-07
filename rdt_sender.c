@@ -163,7 +163,7 @@ int main (int argc, char **argv)
     if (num_packs * DATA_SIZE < size) {
         num_packs++;
     }
-
+    num_packs++;
 
     //array to store all packets
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
@@ -186,7 +186,7 @@ int main (int argc, char **argv)
         packArr[count] = pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
-        
+
     }
     
     /* socket: create the socket */
