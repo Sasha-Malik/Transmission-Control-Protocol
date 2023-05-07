@@ -92,7 +92,7 @@
                 //if we are in slow start phase
                 if(cwnd < ssthresh)
                 {
-                    ssthresh = ( (int)cwnd > 2 ? (int)cwnd : 2);
+                    ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
                     //writing to csv
                     writeCSV();
                 }
@@ -356,7 +356,7 @@
                         //if we are in slow start phase and a packet is lost
                         if(cwnd < ssthresh)
                         {
-                            ssthresh = ( (int)cwnd > 2 ? (int)cwnd : 2);
+                            ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
                             //writing to csv
                             writeCSV();
                         }
@@ -378,7 +378,7 @@
                         duplicateACK = 0;
                        
                        //fast recovery
-                       ssthresh = ( (int)cwnd > 2 ? (int)cwnd : 2);
+                       ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
                        //writing to csv
                        writeCSV();
                        
