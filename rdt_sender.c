@@ -64,7 +64,7 @@
         void writeCSV(){
             csv = fopen("CWND.csv", "a");
             if (csv == NULL){
-                printf("Error opening csv\n");  
+                printf("Error opening csv\n");
             }
             
             struct timeval t1;
@@ -92,7 +92,9 @@
                 //if we are in slow start phase
                 if(cwnd < ssthresh)
                 {
+                    printf("before : %d \n",ssthresh);
                     ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
+                    printf("after : %d \n",ssthresh);
                     //writing to csv
                     writeCSV();
                 }
@@ -166,6 +168,8 @@
             fclose(csv);
             
             gettimeofday(&time_init, 0); // noting starting time
+            
+            writeCSV();
             
             int portno, len;
             int next_seqno = 0;
