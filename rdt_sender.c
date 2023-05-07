@@ -67,10 +67,9 @@ void resend_packets(int sig)
             error("sendto");
         }
 
-        // printf("%d\n",rto);
-        // printf("backoff\n");
+
         exp_backoff();
-        // printf("%d\n",rto);
+
     }
 }
 
