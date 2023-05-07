@@ -51,7 +51,26 @@
         double alpha = 0.125;
         double beta = 0.25;
 
+        FILE *csv;
+
         void exp_backoff();
+
+        struct timeval time_init;
+        float timedifference_msec(struct timeval t0, struct timeval t1)
+        {
+            return fabs((t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f);
+        }
+
+        void writeCSV(){
+            csv = fopen("CWND.csv", "a");
+            if (csv == NULL){
+                printf("Error opening csv\n");  
+            }
+            
+            struct timeval t1;
+            gettimeofday(&t1, 0);
+            fprintf(csv, "%f,%f,%d\n", timedifference_msec(time_init, t1), cwnd, ssthresh);
+        }
 
         void resend_packets(int sig)
         {
@@ -138,24 +157,7 @@
                 rto = maxRTO;
             init_timer(rto, resend_packets);
         }
-
-        struct timeval time_init;
         
-        float timedifference_msec(struct timeval t0, struct timeval t1)
-        {
-            struct timeval t1;
-            gettimeofday(&t1, 0);
-            return fabs((t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f);
-        }
-    
-        void writeCSV(){
-            csv = fopen("CWND.csv", "a");
-            if (csv == NULL){
-                printf("Error opening csv\n");
-                return 1;
-            }
-            fprintf(csv, "%f,%f,%d\n", timedifference_msec(time_init, t1), congestion_window_size, ssthresh);
-        }
 
         int main (int argc, char **argv)
         {
