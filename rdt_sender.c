@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <math.h>
 // #include <stdbool.h>
+// for SIG
 
 #include"packet.h"
 #include"common.h"
@@ -40,13 +41,14 @@ int duplicateACK = 0; // counter to check duplicate ACKS
 // for RTO calculation
 int rtt_running = 0;
 struct timeval start, end;
-int rto = 3; // rto = estrtt + 4 * devrtt
+int rto = 3000; // rto = estrtt + 4 * devrtt
 double rtt = 0; // rtt = end - start
 double estrtt = 0; // estrtt = (1 - alpha) * estrtt + alpha * rtt
 double devrtt = 0; // devrtt = (1 - beta) * devrtt + beta * |rtt - estrtt|
 double alpha = 0.125;
 double beta = 0.25;
 
+void exp_backoff();
 
 void resend_packets(int sig)
 {
@@ -61,6 +63,11 @@ void resend_packets(int sig)
         {
             error("sendto");
         }
+
+        // printf("%d\n",rto);
+        // printf("backoff\n");
+        exp_backoff();
+        // printf("%d\n",rto);
     }
 }
 
@@ -101,19 +108,22 @@ void calc_rto()
     rtt = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
     estrtt = (1 - alpha) * estrtt + alpha * rtt;
     devrtt = (1 - beta) * devrtt + beta * abs(rtt - estrtt);
-    rto = floor(estrtt + 4 * devrtt);
+    // rto = floor(estrtt + 4 * devrtt); 
+    rto = (int) (estrtt + 4 * devrtt);
 
-    // rto should be at least 1ms - in case floor ret 0
-    if (rto < 1)
-        rto = 1;
+    // rto should be at least 1 second - in case floor ret 0
+    if (rto < 3000)
+        rto = 3000;
 
-    VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %d", rtt, estrtt, devrtt, rto);
+    // VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %d", rtt, estrtt, devrtt, rto);
     init_timer(rto, resend_packets);
 }
 
 void exp_backoff()
 {
     rto *= 2;
+    if (rto >= 240000)
+        rto = 240000;
     init_timer(rto, resend_packets);
 }
 
@@ -281,6 +291,8 @@ int main (int argc, char **argv)
             recvpkt = (tcp_packet *)buffer;
             assert(get_data_size(recvpkt) <= DATA_SIZE);
 
+            // printf("Ack recv: %d\n", recvpkt->hdr.ackno);
+
             //end of file empty packet
             if (recvpkt->hdr.ackno == size) {       
                 printf("Done\n");
@@ -300,7 +312,11 @@ int main (int argc, char **argv)
             // stop timer if the acked packet includes the lowest
             if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
                 stop_timer();
+                gettimeofday(&end, NULL);                
+                calc_rto();
                 start_timer(); //starting timer for the new lowest
+                gettimeofday(&start, NULL);
+                
                 duplicateACK = 0;
             }
         
@@ -313,19 +329,22 @@ int main (int argc, char **argv)
            if(duplicateACK == 3)
            {
                 // printf("DUPLICATE\n");
-               stop_timer();
-               start_timer();
+                stop_timer();
+                gettimeofday(&end, NULL);
 
-               sndpkt = head->val;
+                sndpkt = head->val;
 
-               VLOG(INFO, "Timeout happend");
-               if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
-                           ( const struct sockaddr *)&serveraddr, serverlen) < 0)
-               {
-                   error("sendto");
-               }
+                VLOG(INFO, "Timeout happend");
+                if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
+                            ( const struct sockaddr *)&serveraddr, serverlen) < 0)
+                {
+                    error("sendto");
+                }
 
-               duplicateACK = 0;
+                start_timer();
+                gettimeofday(&start, NULL);
+
+                duplicateACK = 0;
            }
       
            
