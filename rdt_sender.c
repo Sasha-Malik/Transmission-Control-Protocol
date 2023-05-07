@@ -72,7 +72,11 @@
                 
                 //if we are in slow start phase
                 if(cwnd < ssthresh)
+                {
                     ssthresh = ( (int)cwnd > 2 ? (int)cwnd : 2);
+                    //writing to csv
+                    writeCSV();
+                }
             }
         }
 
@@ -135,9 +139,32 @@
             init_timer(rto, resend_packets);
         }
 
+        struct timeval time_init;
+        
+        float timedifference_msec(struct timeval t0, struct timeval t1)
+        {
+            struct timeval t1;
+            gettimeofday(&t1, 0);
+            return fabs((t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f);
+        }
+    
+        void writeCSV(){
+            csv = fopen("CWND.csv", "a");
+            if (csv == NULL){
+                printf("Error opening csv\n");
+                return 1;
+            }
+            fprintf(csv, "%f,%f,%d\n", timedifference_msec(time_init, t1), congestion_window_size, ssthresh);
+        }
 
         int main (int argc, char **argv)
         {
+            //opening it to refresh it
+            csv = fopen("CWND.csv", "w");
+            fclose(csv);
+            
+            gettimeofday(&time_init, 0); // noting starting time
+            
             int portno, len;
             int next_seqno = 0;
             char *hostname;
@@ -293,6 +320,8 @@
                         /* Congestion Avoidance */
                         cwnd = cwnd + 1/cwnd;
                 
+                    //writing to csv
+                    writeCSV();
           
                     // stop timer if the acked packet includes the lowest
                     if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
@@ -324,8 +353,11 @@
                         
                         //if we are in slow start phase and a packet is lost
                         if(cwnd < ssthresh)
+                        {
                             ssthresh = ( (int)cwnd > 2 ? (int)cwnd : 2);
-                        
+                            //writing to csv
+                            writeCSV();
+                        }
                     }
                 
                     //fast recovery
@@ -345,6 +377,8 @@
                        
                        //fast recovery
                        ssthresh = ( (int)cwnd > 2 ? (int)cwnd : 2);
+                       //writing to csv
+                       writeCSV();
                        
                        //deleting list
                        while(list_size != 0)
@@ -357,6 +391,8 @@
                        list_size = 1;
                        push(&head, &tail, sndpkt); //pushing to the list
                        cwnd = 1;
+                       //writing to csv
+                       writeCSV();
                     
                    }
               
