@@ -39,9 +39,10 @@ int duplicateACK = 0; // counter to check duplicate ACKS
 
 
 // for RTO calculation
-int rtt_running = 0;
+int retransmitted = 0;
 struct timeval start, end;
 int rto = 3000; // rto = estrtt + 4 * devrtt
+int maxRTO = 5000;
 double rtt = 0; // rtt = end - start
 double estrtt = 0; // estrtt = (1 - alpha) * estrtt + alpha * rtt
 double devrtt = 0; // devrtt = (1 - beta) * devrtt + beta * |rtt - estrtt|
@@ -56,6 +57,8 @@ void resend_packets(int sig)
     {
         //Resend the smallest packet
         sndpkt = head->val;
+
+        retransmitted = 1;
 
         VLOG(INFO, "Timout happend");
         if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
@@ -114,6 +117,8 @@ void calc_rto()
     // rto should be at least 1 second - in case floor ret 0
     if (rto < 3000)
         rto = 3000;
+    if (rto >= maxRTO)
+        rto = maxRTO;
 
     // VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %d", rtt, estrtt, devrtt, rto);
     init_timer(rto, resend_packets);
@@ -122,8 +127,8 @@ void calc_rto()
 void exp_backoff()
 {
     rto *= 2;
-    if (rto >= 240000)
-        rto = 240000;
+    if (rto >= maxRTO)
+        rto = maxRTO;
     init_timer(rto, resend_packets);
 }
 
@@ -163,7 +168,7 @@ int main (int argc, char **argv)
     if (num_packs * DATA_SIZE < size) {
         num_packs++;
     }
-    num_packs++;
+
 
     //array to store all packets
     tcp_packet **packArr = malloc(num_packs * sizeof(tcp_packet *));
@@ -186,7 +191,7 @@ int main (int argc, char **argv)
         packArr[count] = pack;
         count++;
         len = fread(buffer, 1, DATA_SIZE, fp);
-
+        
     }
     
     /* socket: create the socket */
@@ -227,7 +232,7 @@ int main (int argc, char **argv)
         i = num_packs;
     }
 
-    // int set_timer = 0;
+    int set_timer = 0;
 
     // incase there are less tahn 10 in total
     while(i > 0)
@@ -247,16 +252,15 @@ int main (int argc, char **argv)
         }
         
         //keeping timer for the lowest packet
-        if(!rtt_running)
+        if(!set_timer)
         {
-            init_timer(rto, resend_packets); // initialize with rto
+            // init_timer(rto, resend_packets); // initialize with rto
             start_timer();
+            gettimeofday(&start, NULL);
             // set_timer = 1;
 
-            rtt_running = 1;
+            set_timer = 1;
             // record time for rtt
-            gettimeofday(&start, NULL);
-
         }
         
         i--;
@@ -311,17 +315,31 @@ int main (int argc, char **argv)
 
             // stop timer if the acked packet includes the lowest
             if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
-                stop_timer();
-                gettimeofday(&end, NULL);                
-                calc_rto();
-                start_timer(); //starting timer for the new lowest
-                gettimeofday(&start, NULL);
-                
-                duplicateACK = 0;
+
+                if (!retransmitted) {
+                    stop_timer();
+                    gettimeofday(&end, NULL);                
+                    calc_rto();
+                    start_timer(); //starting timer for the new lowest
+                    gettimeofday(&start, NULL);
+                    
+                    duplicateACK = 0;
+                }
+                else {
+                    stop_timer();
+                    gettimeofday(&end, NULL);                
+                    start_timer(); //starting timer for the new lowest
+                    gettimeofday(&start, NULL);
+                    
+                    duplicateACK = 0;
+
+                    retransmitted = 0;
+                }
             }
         
             else{
                 duplicateACK++;
+                retransmitted = 1;
             }
         
         
@@ -329,8 +347,8 @@ int main (int argc, char **argv)
            if(duplicateACK == 3)
            {
                 // printf("DUPLICATE\n");
-                stop_timer();
-                gettimeofday(&end, NULL);
+                // stop_timer();
+                // gettimeofday(&end, NULL);
 
                 sndpkt = head->val;
 
@@ -341,8 +359,8 @@ int main (int argc, char **argv)
                     error("sendto");
                 }
 
-                start_timer();
-                gettimeofday(&start, NULL);
+                // start_timer();
+                // gettimeofday(&start, NULL);
 
                 duplicateACK = 0;
            }

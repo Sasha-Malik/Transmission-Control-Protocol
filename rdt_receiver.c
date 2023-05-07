@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     // setting socket timeout option to a 10-second timeout for receiving data
     struct timeval recv_timeout;
-    recv_timeout.tv_sec = 10;
+    recv_timeout.tv_sec = 300;
     // recv_timeout.tv_usec = 0;
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, 
         &recv_timeout, sizeof(recv_timeout));
