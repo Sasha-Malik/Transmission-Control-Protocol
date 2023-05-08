@@ -29,6 +29,7 @@
         float cwnd = 1;
         int ssthresh = 64;
         int list_size = 0;
+        int counter = 0; //keeping index of pack array
 
         int sockfd, serverlen;
         struct sockaddr_in serveraddr;
@@ -39,6 +40,8 @@
 
         int duplicateACK = 0; // counter to check duplicate ACKS
 
+        int timedOutPack = 0; // to check if the packet was timed out before
+        int timedOutPackSeqno = 0; //to keep track of that packet
 
         // for RTO calculation
         int retransmitted = 0;
@@ -87,7 +90,29 @@
                 {
                     error("sendto");
                 }
-                exp_backoff();
+                
+                //backoff
+                
+                //if there was no timeout before
+                if(!timedOutPack)
+                {
+                    timedOutPack = 1;
+                    timedOutPackSeqno = head->val->hdr.seqno;
+                }
+                
+                //if the timeout was successive for same packet
+                else if(timedOutPackSeqno == head->val->hdr.seqno)
+                {
+                    exp_backoff();
+                }
+                
+                //different packet timed out for first time
+                else if(timedOutPackSeqno != head->val->hdr.seqno)
+                {
+                    timedOutPack = 1;
+                    timedOutPackSeqno = head->val->hdr.seqno;
+                }
+                
                 
                 //if we are in slow start phase
                 if(cwnd < ssthresh)
@@ -95,6 +120,27 @@
                     printf("before : %d \n",ssthresh);
                     ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
                     printf("after : %d \n",ssthresh);
+                    //writing to csv
+                    writeCSV();
+                }
+                //if it is in avoidance then make cwnd = 1
+                else
+                {
+                    ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
+                 
+                    //deleting list
+                    while(list_size != 0)
+                    {
+                        pop(&head, &tail);
+                        list_size--;
+                        counter--;
+                    }
+                 
+                    //list size is 1 now
+                    list_size = 1;
+                    counter++;
+                    push(&head, &tail, sndpkt); //pushing to the list
+                    cwnd = 1;
                     //writing to csv
                     writeCSV();
                 }
@@ -250,7 +296,7 @@
 
             // reset to beg - FOR NOW
             fseek(fp, 0, SEEK_SET);
-            int counter = 0; //keeping index of pack array
+            
             
             //sending first 1 packet
             int i = (int)cwnd;
@@ -383,18 +429,18 @@
                        
                        //fast recovery
                        ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
-                       //writing to csv
-                       writeCSV();
-                       
+                    
                        //deleting list
                        while(list_size != 0)
                        {
                            pop(&head, &tail);
                            list_size--;
+                           counter--;
                        }
-                       
+                    
                        //list size is 1 now
                        list_size = 1;
+                       counter++;
                        push(&head, &tail, sndpkt); //pushing to the list
                        cwnd = 1;
                        //writing to csv
