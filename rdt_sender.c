@@ -11,8 +11,6 @@
         #include <time.h>
         #include <assert.h>
         #include <math.h>
-        // #include <stdbool.h>
-        // for SIG
 
         #include"packet.h"
         #include"common.h"
@@ -46,7 +44,7 @@
         // for RTO calculation
         struct timeval start, end;
         int rto = 3000; // rto = estrtt + 4 * devrtt
-        int maxRTO = 5000;
+        int maxRTO = 240000;
         double rtt = 0; // rtt = end - start
         double estrtt = 0; // estrtt = (1 - alpha) * estrtt + alpha * rtt
         double devrtt = 0; // devrtt = (1 - beta) * devrtt + beta * |rtt - estrtt|
@@ -72,6 +70,7 @@
             struct timeval t1;
             gettimeofday(&t1, 0);
             fprintf(csv, "%f,%f,%d\n", timedifference_msec(time_init, t1), cwnd, ssthresh);
+            fclose(csv);
         }
 
         void resend_packets(int sig)
@@ -181,6 +180,7 @@
         //calculate rto
         void calc_rto(struct timeval start, struct timeval end)
         {
+           
             rtt = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
             estrtt = (1 - alpha) * estrtt + alpha * rtt;
             devrtt = (1 - beta) * devrtt + beta * abs(rtt - estrtt);
@@ -193,7 +193,7 @@
             if (rto >= maxRTO)
                 rto = maxRTO;
 
-            // VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %d", rtt, estrtt, devrtt, rto);
+            VLOG(INFO, "rtt: %f, estrtt: %f, devrtt: %f, rto: %d", rtt, estrtt, devrtt, rto);
             init_timer(rto, resend_packets);
         }
 
@@ -349,6 +349,23 @@
                     }
                     recvpkt = (tcp_packet *)buffer;
                     assert(get_data_size(recvpkt) <= DATA_SIZE);
+                
+                
+                    // we'll look through the buffer of packtes sent for the packet that triggered ack
+                
+                    packet_list* temp = head;
+                    while(temp->next != NULL){
+                        
+                        if(recvpkt->hdr.triggered == temp->val->hdr.seqno){
+                            struct timeval end;
+                            gettimeofday(&end, NULL);
+                            calc_rto(temp->sendTime, end);
+                            break;
+                        }
+                        
+                        temp = temp->next;
+                    }
+                
 
 
                     //end of file empty packet
@@ -365,7 +382,7 @@
                     }
                 
                     //congestion control
-                
+        
                     if (cwnd < ssthresh)
                         /* Slow Start*/
                         cwnd = cwnd + 1;
@@ -378,18 +395,20 @@
           
                     // stop timer if the acked packet includes the lowest
                     if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
-
-                        if (!head->resent) {
-                            stop_timer();
-                            gettimeofday(&end, NULL);
-                            calc_rto(head->sendTime, end);
-                            start_timer(); //starting timer for the new lowest
-                        }
-                        else {
-                            stop_timer();
-                            start_timer(); //starting timer for the new lowest
-                        }
                         
+                       
+//                        if (!head->resent) {
+//                            stop_timer();
+//                            gettimeofday(&end, NULL);
+//                            calc_rto(head->sendTime, end);
+//                            start_timer(); //starting timer for the new lowest
+//                        }
+//                        else {
+//                            stop_timer();
+//                            start_timer(); //starting timer for the new lowest
+//                        }
+                        stop_timer();
+                        start_timer();
                         duplicateACK = 0;
                         
                     }
@@ -455,10 +474,10 @@
                     //popping the acked packets from the pack list
                     while(recvpkt->hdr.ackno > head->val->hdr.seqno)
                     {
-                        if (!head->resent){
-                            gettimeofday(&end, NULL);
-                            calc_rto(head->sendTime, end);
-                        }
+//                        if (!head->resent){
+//                            gettimeofday(&end, NULL);
+//                            calc_rto(head->sendTime, end);
+//                        }
                         
                         pop(&head, &tail);
                         list_size--;

@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
             int found = 0;
             if(head!=NULL)
             while (1) {
-                // printf("HERE: curr->val->hdr.seqno: %d\n", curr->val->hdr.seqno);
+                
                 if (curr->val->hdr.seqno == curr_ackno)
                 {
                     fseek(fp,0, SEEK_SET);
@@ -161,24 +161,20 @@ int main(int argc, char **argv) {
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
                     curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
                    
-                    if (popCurrent(&head, &tail, &curr) == NULL){
-                      
+                    if (popCurrent(&head, &tail, &curr) == NULL)
                         break;
-                    }
+                    
                     found = 1;
-
-                
                 }
                 
-                else {
+                else
                     curr = curr->next;
-                }
+                
                 
                 //noting found in one iteration over the list
                 if(curr == NULL){
-                    if (found == 0) {
+                    if (found == 0)
                         break;
-                    }
                     else{
                         found = 0;
                         curr = head;
@@ -191,6 +187,7 @@ int main(int argc, char **argv) {
             sndpkt = make_packet(0);
             sndpkt->hdr.ackno = curr_ackno;
             sndpkt->hdr.ctr_flags = ACK;
+            sndpkt->hdr.triggered = recvpkt->hdr.seqno;
             if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
                     (struct sockaddr *) &clientaddr, clientlen) < 0) {
                 error("ERROR in sendto");
@@ -198,12 +195,14 @@ int main(int argc, char **argv) {
             printf("Ack sent: %d\n", sndpkt->hdr.ackno);
         }
 
-        else {
-            //VLOG(DEBUG, "huh");
+        else
+        {
+         
             // send repeated ack
             sndpkt = make_packet(0);
             sndpkt->hdr.ackno = curr_ackno;
             sndpkt->hdr.ctr_flags = ACK;
+            sndpkt->hdr.triggered = recvpkt->hdr.seqno;
             if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0, 
                     (struct sockaddr *) &clientaddr, clientlen) < 0) {
                 error("ERROR in sendto");
@@ -212,14 +211,13 @@ int main(int argc, char **argv) {
 
             // store packet in buffer
             if (recvpkt->hdr.seqno > curr_ackno) { // ignore packets that are already received
-                
-
                packet_list* check = head;
                while (check!= NULL){
                     if (check->val->hdr.seqno == recvpkt->hdr.seqno){
                         break;
                     }
                     check = check->next;
+                   
                }
 
                if (check == NULL){
@@ -230,7 +228,8 @@ int main(int argc, char **argv) {
                    struct timeval t1;
                    gettimeofday(&t1, NULL);
                     push(&head, &tail, copy, t1);
-               }           
+                   
+               }
             }
 
         }
