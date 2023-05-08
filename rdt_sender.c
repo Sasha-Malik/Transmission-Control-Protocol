@@ -44,7 +44,6 @@
         int timedOutPackSeqno = 0; //to keep track of that packet
 
         // for RTO calculation
-        int retransmitted = 0;
         struct timeval start, end;
         int rto = 3000; // rto = estrtt + 4 * devrtt
         int maxRTO = 5000;
@@ -81,8 +80,7 @@
             {
                 //Resend the smallest packet
                 sndpkt = head->val;
-
-                retransmitted = 1;
+                head->resent = 1;
 
                 VLOG(INFO, "Timout happend");
                 if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
@@ -127,7 +125,8 @@
                 else
                 {
                     ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
-                 
+                    int tempResent = head->resent;
+                    struct timeval tempTime = head->sendTime;
                     //deleting list
                     while(list_size != 0)
                     {
@@ -139,7 +138,8 @@
                     //list size is 1 now
                     list_size = 1;
                     counter++;
-                    push(&head, &tail, sndpkt); //pushing to the list
+                    push(&head, &tail, sndpkt, tempTime); //pushing to the list
+                    head->resent = tempResent;
                     cwnd = 1;
                     //writing to csv
                     writeCSV();
@@ -179,7 +179,7 @@
         }
 
         //calculate rto
-        void calc_rto()
+        void calc_rto(struct timeval start, struct timeval end)
         {
             rtt = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
             estrtt = (1 - alpha) * estrtt + alpha * rtt;
@@ -302,11 +302,12 @@
             int i = (int)cwnd;
             int set_timer = 0;
 
-            // incase there are less tahn 10 in total
             while(i > 0)
             {
                 sndpkt = packArr[counter];
-                push(&head, &tail, sndpkt); //pushing to the list
+                struct timeval tempTime;
+                gettimeofday(&tempTime, NULL);
+                push(&head, &tail, sndpkt,tempTime); //pushing to the list
                 list_size++;
                 counter++;
 
@@ -378,30 +379,25 @@
                     // stop timer if the acked packet includes the lowest
                     if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
 
-                        if (!retransmitted) {
+                        if (!head->resent) {
                             stop_timer();
                             gettimeofday(&end, NULL);
-                            calc_rto();
+                            calc_rto(head->sendTime, end);
                             start_timer(); //starting timer for the new lowest
-                            gettimeofday(&start, NULL);
-                            
-                            duplicateACK = 0;
                         }
                         else {
-                            retransmitted = 0;
                             stop_timer();
-                            gettimeofday(&end, NULL);
                             start_timer(); //starting timer for the new lowest
-                            gettimeofday(&start, NULL);
-                            
-                            duplicateACK = 0;
                         }
+                        
+                        duplicateACK = 0;
                         
                     }
                 
-                    else{
+                    //duplicate ack
+                    else
+                    {
                         duplicateACK++;
-                        retransmitted = 1;
                         
                         //if we are in slow start phase and a packet is lost
                         if(cwnd < ssthresh)
@@ -417,6 +413,7 @@
                    if(duplicateACK == 3)
                    {
                         sndpkt = head->val;
+                        head->resent = 1;
 
                         VLOG(INFO, "Timeout happend");
                         if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
@@ -429,7 +426,9 @@
                        
                        //fast recovery
                        ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
-                    
+                       int tempResent = head->resent;
+                       struct timeval tempTime = head->sendTime;
+                       
                        //deleting list
                        while(list_size != 0)
                        {
@@ -441,7 +440,9 @@
                        //list size is 1 now
                        list_size = 1;
                        counter++;
-                       push(&head, &tail, sndpkt); //pushing to the list
+                       
+                       push(&head, &tail, sndpkt, tempTime); //pushing to the list
+                       head->resent = tempResent;
                        cwnd = 1;
                        //writing to csv
                        writeCSV();
@@ -454,6 +455,11 @@
                     //popping the acked packets from the pack list
                     while(recvpkt->hdr.ackno > head->val->hdr.seqno)
                     {
+                        if (!head->resent){
+                            gettimeofday(&end, NULL);
+                            calc_rto(head->sendTime, end);
+                        }
+                        
                         pop(&head, &tail);
                         list_size--;
                         if (head == NULL) {
@@ -470,7 +476,9 @@
                         {
                         
                             sndpkt = packArr[counter];
-                            push(&head, &tail, sndpkt); //pushing to the list
+                            struct timeval tempTime;
+                            gettimeofday(&tempTime, NULL);
+                            push(&head, &tail, sndpkt, tempTime); //pushing to the list
                             list_size++;
                             counter++;
                                                 

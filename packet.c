@@ -21,11 +21,13 @@ int get_data_size(tcp_packet *pkt)
 }
 
 
-void push(packet_list ** head, packet_list ** tail, tcp_packet * val) {
+void push(packet_list ** head, packet_list ** tail, tcp_packet * val, struct timeval tempTime) {
     
     packet_list * new_node = (packet_list *) malloc(sizeof(packet_list));
     new_node->val = val;
     new_node->next = NULL;
+    new_node->sendTime = tempTime;
+    new_node->resent = 0;
 
     if (*tail == NULL) {
         *head = new_node;

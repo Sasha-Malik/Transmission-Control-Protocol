@@ -160,9 +160,6 @@ int main(int argc, char **argv) {
                     fseek(fp, curr->val->hdr.seqno, SEEK_SET);
                     fwrite(curr->val->data, 1, curr->val->hdr.data_size, fp);
                     curr_ackno = curr->val->hdr.seqno + curr->val->hdr.data_size;
-
-
-                    packet_list * test = head;
                    
                     if (popCurrent(&head, &tail, &curr) == NULL){
                       
@@ -230,7 +227,9 @@ int main(int argc, char **argv) {
                    tcp_packet * copy = make_packet(size_new);
                    memcpy(copy, recvpkt, TCP_HDR_SIZE + size_new);
 
-                    push(&head, &tail, copy);
+                   struct timeval t1;
+                   gettimeofday(&t1, NULL);
+                    push(&head, &tail, copy, t1);
                }           
             }
 

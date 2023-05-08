@@ -24,11 +24,13 @@ tcp_packet* make_packet(int seq);
 int get_data_size(tcp_packet *pkt);
 
 typedef struct node {
+    struct timeval sendTime;
+    int resent;
     tcp_packet * val;
     struct node * next;
 } packet_list;
 
-void push(packet_list ** head, packet_list ** tail, tcp_packet * val);
+void push(packet_list ** head, packet_list ** tail, tcp_packet * val, struct timeval tempTime);
 
 void pop(packet_list ** head, packet_list ** tail);
 
