@@ -44,7 +44,7 @@
         // for RTO calculation
         struct timeval start, end;
         int rto = 3000; // rto = estrtt + 4 * devrtt
-        int maxRTO = 240000;
+        int maxRTO = 5000;
         double rtt = 0; // rtt = end - start
         double estrtt = 0; // estrtt = (1 - alpha) * estrtt + alpha * rtt
         double devrtt = 0; // devrtt = (1 - beta) * devrtt + beta * |rtt - estrtt|
@@ -349,34 +349,7 @@
                     }
                     recvpkt = (tcp_packet *)buffer;
                     assert(get_data_size(recvpkt) <= DATA_SIZE);
-                
-                
-                   
-                    // look through the buffer of packtes sent for the packet that triggered ack
-                    packet_list* temp = head;
-                    while(temp->next != NULL){
-                        
-                        //packet that triggered ack
-                        if(recvpkt->hdr.triggered == temp->val->hdr.seqno && !temp->resent){
-                            struct timeval end;
-                            gettimeofday(&end, NULL);
-                            calc_rto(temp->sendTime, end);
-                            break;
-                        }
-                        // cumulative case
-                        else if(recvpkt->hdr.ackno > temp->val->hdr.seqno && !temp->resent)
-                        {
-                            struct timeval end;
-                            gettimeofday(&end, NULL);
-                            calc_rto(temp->sendTime, end);
-                            break;
-                        }
-                        
-                        temp = temp->next;
-                    }
-                
-
-
+                    
                     //end of file empty packet
                     if (recvpkt->hdr.ackno == size) {
                         printf("Done\n");
@@ -390,19 +363,34 @@
                         break;
                     }
                 
-                    //congestion control
-        
+                
+                   
+                    // look through the buffer of packtes sent for the packet that triggered ack
+                    //then use its start and end time to calculate rto
+                    packet_list* temp = head;
+                    while(temp->next != NULL){
+                        
+                        //packet that triggered ack
+                        if(recvpkt->hdr.triggered == temp->val->hdr.seqno && !temp->resent){
+                            struct timeval end;
+                            gettimeofday(&end, NULL);
+                            calc_rto(temp->sendTime, end);
+                            break;
+                        }
+                        
+                        temp = temp->next;
+                    }
+                
+                
+                    //if in slow start
                     if (cwnd < ssthresh)
                         /* Slow Start*/
                         cwnd = cwnd + 1;
-                    else
-                        /* Congestion Avoidance */
-                        cwnd = cwnd + 1/cwnd;
                 
                     //writing to csv
                     writeCSV();
           
-                    // stop timer if the acked packet includes the lowest
+                    // stop timer if the ack wasn't duplicate
                     if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
                         
                         stop_timer();
@@ -411,18 +399,10 @@
                         
                     }
                 
-                    //duplicate ack
+                    //incase of duplicate ack
                     else
                     {
                         duplicateACK++;
-                        
-                        //if we are in slow start phase and a packet is lost
-                        if(cwnd < ssthresh)
-                        {
-                            ssthresh = ( (int)cwnd/2 > 2 ? (int)cwnd/2 : 2);
-                            //writing to csv
-                            writeCSV();
-                        }
                     }
                 
                     //fast recovery
@@ -439,6 +419,7 @@
                             error("sendto");
                         }
                        
+                       //reseting duplicate ack counter
                         duplicateACK = 0;
                        
                        //fast recovery
@@ -446,24 +427,22 @@
                        int tempResent = head->resent;
                        struct timeval tempTime = head->sendTime;
                        
-                       //deleting list
+                       //reducing list size to 1
                        while(list_size != 0)
                        {
                            pop(&head, &tail);
                            list_size--;
                            counter--;
                        }
-                    
                        //list size is 1 now
                        list_size = 1;
                        counter++;
-                       
                        push(&head, &tail, sndpkt, tempTime); //pushing to the list
                        head->resent = tempResent;
                        cwnd = 1;
+                       
                        //writing to csv
                        writeCSV();
-                    
                    }
               
                    
@@ -472,23 +451,30 @@
                     //popping the acked packets from the pack list
                     while(recvpkt->hdr.ackno > head->val->hdr.seqno)
                     {
+                        // increasing 1/cwnd for every packet acked
+                        if (cwnd > ssthresh)
+                            /* Congestion Avoidance */
+                            cwnd = cwnd + 1/cwnd;
+                            //writing to csv
+                            writeCSV();
+                        
                         pop(&head, &tail);
                         list_size--;
                         if (head == NULL) {
                             break;
                         }
                     }
-               
+                    
+                    //calculating the number of packets the new cwnd can hold
                     new_packets_no = (int)cwnd - list_size;
                 
-                    //filling the packet list with new packets(same number of acked packets) and sending them
+                    //filling the packet list with new packets and sending them
                     while(new_packets_no > 0)
                     {
                         if(counter < num_packs)
                         {
-                        
                             sndpkt = packArr[counter];
-                            struct timeval tempTime;
+                            struct timeval tempTime; /* noting start time when sending */
                             gettimeofday(&tempTime, NULL);
                             push(&head, &tail, sndpkt, tempTime); //pushing to the list
                             list_size++;
