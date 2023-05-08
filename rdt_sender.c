@@ -351,12 +351,21 @@
                     assert(get_data_size(recvpkt) <= DATA_SIZE);
                 
                 
-                    // we'll look through the buffer of packtes sent for the packet that triggered ack
-                
+                   
+                    // look through the buffer of packtes sent for the packet that triggered ack
                     packet_list* temp = head;
                     while(temp->next != NULL){
                         
-                        if(recvpkt->hdr.triggered == temp->val->hdr.seqno){
+                        //packet that triggered ack
+                        if(recvpkt->hdr.triggered == temp->val->hdr.seqno && !temp->resent){
+                            struct timeval end;
+                            gettimeofday(&end, NULL);
+                            calc_rto(temp->sendTime, end);
+                            break;
+                        }
+                        // cumulative case
+                        else if(recvpkt->hdr.ackno > temp->val->hdr.seqno && !temp->resent)
+                        {
                             struct timeval end;
                             gettimeofday(&end, NULL);
                             calc_rto(temp->sendTime, end);
@@ -396,17 +405,6 @@
                     // stop timer if the acked packet includes the lowest
                     if (recvpkt->hdr.ackno > head->val->hdr.seqno) {
                         
-                       
-//                        if (!head->resent) {
-//                            stop_timer();
-//                            gettimeofday(&end, NULL);
-//                            calc_rto(head->sendTime, end);
-//                            start_timer(); //starting timer for the new lowest
-//                        }
-//                        else {
-//                            stop_timer();
-//                            start_timer(); //starting timer for the new lowest
-//                        }
                         stop_timer();
                         start_timer();
                         duplicateACK = 0;
@@ -474,11 +472,6 @@
                     //popping the acked packets from the pack list
                     while(recvpkt->hdr.ackno > head->val->hdr.seqno)
                     {
-//                        if (!head->resent){
-//                            gettimeofday(&end, NULL);
-//                            calc_rto(head->sendTime, end);
-//                        }
-                        
                         pop(&head, &tail);
                         list_size--;
                         if (head == NULL) {
