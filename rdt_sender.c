@@ -381,11 +381,18 @@
                         temp = temp->next;
                     }
                 
+                    int check = 0;
                 
                     //if in slow start
                     if (cwnd < ssthresh)
                         /* Slow Start*/
                         cwnd = cwnd + 1;
+                    else
+                    {
+                        cwnd = cwnd + 1/cwnd;
+                        check = 1;
+                    }
+                        
                 
                     //writing to csv
                     writeCSV();
@@ -453,10 +460,18 @@
                     {
                         // increasing 1/cwnd for every packet acked
                         if (cwnd > ssthresh)
-                            /* Congestion Avoidance */
-                            cwnd = cwnd + 1/cwnd;
-                            //writing to csv
-                            writeCSV();
+                        {
+                            if(check == 1)
+                                check = 0;
+                            
+                            else{
+                                /* Congestion Avoidance */
+                                cwnd = cwnd + 1/cwnd;
+                                //writing to csv
+                                writeCSV();
+                            }
+                        }
+                           
                         
                         pop(&head, &tail);
                         list_size--;
